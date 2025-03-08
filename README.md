@@ -33,10 +33,10 @@ Our application prioritizes:
 
 ## Documentation
 
-- [PROGRESS.md](./PROGRESS.md) - Current development status and backlog of items
-- [UI_DESIGN.md](./UI_DESIGN.md) - Detailed UI/UX design documentation
-- [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) - Technical architecture and project structure
-- [IMPROVEMENTS.md](./IMPROVEMENTS.md) - Key improvements over Planning Center Services
+- [Progress](PROGRESS.md) - Current development status and backlog of items
+- [UI Design](UI_DESIGN.md) - Detailed UI/UX design documentation
+- [Project Structure](PROJECT_STRUCTURE.md) - Technical architecture and project structure
+- [Improvements](IMPROVEMENTS.md) - Key improvements over Planning Center Services
 
 ## Getting Started
 
