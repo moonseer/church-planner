@@ -55,10 +55,10 @@ This document tracks the development progress of the Church Planner application.
 - [x] Build pending volunteer responses component
 - [x] Implement recent activity feed
 - [x] Create quick actions panel
-- [ ] Build calendar view with month/week/day toggle
+- [x] Build calendar view with month/week/day toggle
 - [x] Add service and rehearsal indicators
-- [ ] Implement analytics widgets
-- [ ] Create customizable dashboard layout
+- [x] Implement analytics widgets
+- [x] Create customizable dashboard layout
 
 ### Service Planning
 - [ ] Create service template system
@@ -194,6 +194,9 @@ This document tracks the development progress of the Church Planner application.
 - Implemented recent activity feed
 - Created quick actions panel
 - Added service and rehearsal indicators
+- Built calendar view with month/week/day toggle
+- Implemented analytics widgets
+- Created customizable dashboard layout
 - Optimized layouts for mobile devices
 - Created mobile-specific navigation (bottom bar)
 - Optimized touch targets for all interactive elements
@@ -219,6 +222,7 @@ This document tracks the development progress of the Church Planner application.
 - Core authentication system
 - Basic service planning functionality
 - Design system implementation
+- Dashboard components and customization
 
 ## Notes
 

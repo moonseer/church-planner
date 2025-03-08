@@ -1,157 +1,238 @@
-import { CalendarIcon, UserGroupIcon, MusicalNoteIcon } from '@heroicons/react/24/outline'
+import { useState, useEffect } from 'react';
+import CustomizableDashboard, { Widget } from '../components/dashboard/CustomizableDashboard';
+import Calendar from '../components/dashboard/Calendar';
+import AnalyticsWidgets from '../components/dashboard/AnalyticsWidgets';
 
-const stats = [
-  { name: 'Upcoming Services', stat: '3', icon: CalendarIcon, color: 'bg-primary-500' },
-  { name: 'Active Volunteers', stat: '24', icon: UserGroupIcon, color: 'bg-secondary-500' },
-  { name: 'Songs in Library', stat: '156', icon: MusicalNoteIcon, color: 'bg-accent-500' },
-]
+// Mock data for analytics
+const mockAnalyticsData = {
+  attendance: [65, 59, 80, 81, 56, 55, 40],
+  volunteers: [28, 48, 40, 19, 86, 27, 90],
+  songs: [
+    { name: 'Amazing Grace', count: 12 },
+    { name: 'How Great Is Our God', count: 10 },
+    { name: 'Good Good Father', count: 8 },
+    { name: 'What A Beautiful Name', count: 7 },
+    { name: 'Cornerstone', count: 6 }
+  ],
+  timeLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']
+};
 
-const upcomingServices = [
-  { id: 1, name: 'Sunday Morning Service', date: 'March 12, 2023', time: '10:00 AM', status: 'Published' },
-  { id: 2, name: 'Wednesday Night Bible Study', date: 'March 15, 2023', time: '7:00 PM', status: 'Draft' },
-  { id: 3, name: 'Sunday Morning Service', date: 'March 19, 2023', time: '10:00 AM', status: 'Draft' },
-]
+// Mock events for calendar
+const mockEvents = [
+  {
+    id: '1',
+    title: 'Sunday Service',
+    start: new Date(2023, 5, 4, 9, 0),
+    end: new Date(2023, 5, 4, 11, 0),
+    type: 'service'
+  },
+  {
+    id: '2',
+    title: 'Worship Practice',
+    start: new Date(2023, 5, 2, 18, 0),
+    end: new Date(2023, 5, 2, 20, 0),
+    type: 'rehearsal'
+  },
+  {
+    id: '3',
+    title: 'Youth Group',
+    start: new Date(2023, 5, 7, 19, 0),
+    end: new Date(2023, 5, 7, 21, 0),
+    type: 'youth'
+  }
+];
 
-const pendingResponses = [
-  { id: 1, name: 'John Smith', role: 'Worship Leader', service: 'Sunday Morning Service', date: 'March 12, 2023' },
-  { id: 2, name: 'Sarah Johnson', role: 'Vocalist', service: 'Sunday Morning Service', date: 'March 12, 2023' },
-  { id: 3, name: 'Michael Brown', role: 'Sound Tech', service: 'Wednesday Night Bible Study', date: 'March 15, 2023' },
-]
+// Mock data for upcoming services
+const mockUpcomingServices = [
+  {
+    id: '1',
+    date: new Date(2023, 5, 11),
+    title: 'Sunday Morning Service',
+    team: 'Team A',
+    status: 'Planning'
+  },
+  {
+    id: '2',
+    date: new Date(2023, 5, 18),
+    title: 'Sunday Morning Service',
+    team: 'Team B',
+    status: 'Confirmed'
+  },
+  {
+    id: '3',
+    date: new Date(2023, 5, 25),
+    title: 'Sunday Morning Service',
+    team: 'Team C',
+    status: 'Draft'
+  }
+];
 
-const Dashboard = () => {
+// Volunteer stats component
+const VolunteerStats = () => {
   return (
-    <div>
-      <div className="pb-5 border-b border-neutral-200 sm:flex sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold leading-6 text-neutral-900">Dashboard</h1>
-        <div className="mt-3 sm:mt-0 sm:ml-4">
-          <button
-            type="button"
-            className="btn btn-primary"
-          >
-            Create New Service
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map((item) => (
-          <div key={item.name} className="card overflow-hidden">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className={`flex-shrink-0 rounded-md p-3 ${item.color}`}>
-                  <item.icon className="h-6 w-6 text-white" aria-hidden="true" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-neutral-500 truncate">{item.name}</dt>
-                    <dd>
-                      <div className="text-lg font-medium text-neutral-900">{item.stat}</div>
-                    </dd>
-                  </dl>
-                </div>
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium text-neutral-900">Volunteer Status</h3>
+      <div className="space-y-2">
+        {['Worship', 'Tech', 'Hospitality', 'Children'].map((team) => (
+          <div key={team} className="flex justify-between items-center">
+            <span className="text-sm text-neutral-600">{team}</span>
+            <div className="flex items-center">
+              <span className="text-sm font-medium text-neutral-900 mr-2">
+                {Math.floor(Math.random() * 10) + 1}/{Math.floor(Math.random() * 5) + 10}
+              </span>
+              <div className="w-24 bg-neutral-200 rounded-full h-2">
+                <div 
+                  className="bg-primary-500 h-2 rounded-full" 
+                  style={{ width: `${Math.floor(Math.random() * 100)}%` }}
+                ></div>
               </div>
             </div>
           </div>
         ))}
       </div>
+    </div>
+  );
+};
 
-      {/* Upcoming Services */}
-      <h2 className="mt-8 text-lg font-medium leading-6 text-neutral-900">Upcoming Services</h2>
-      <div className="mt-2 overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-        <table className="min-w-full divide-y divide-neutral-300">
-          <thead className="bg-neutral-50">
-            <tr>
-              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-neutral-900 sm:pl-6">
-                Service
-              </th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-900">
-                Date
-              </th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-900">
-                Time
-              </th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-900">
-                Status
-              </th>
-              <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                <span className="sr-only">Edit</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200 bg-white">
-            {upcomingServices.map((service) => (
-              <tr key={service.id}>
-                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-neutral-900 sm:pl-6">
-                  {service.name}
-                </td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-neutral-500">{service.date}</td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-neutral-500">{service.time}</td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-neutral-500">
-                  <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                    service.status === 'Published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {service.status}
-                  </span>
-                </td>
-                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                  <a href="#" className="text-primary-600 hover:text-primary-900">
-                    Edit<span className="sr-only">, {service.name}</span>
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pending Volunteer Responses */}
-      <h2 className="mt-8 text-lg font-medium leading-6 text-neutral-900">Pending Volunteer Responses</h2>
-      <div className="mt-2 overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-        <table className="min-w-full divide-y divide-neutral-300">
-          <thead className="bg-neutral-50">
-            <tr>
-              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-neutral-900 sm:pl-6">
-                Name
-              </th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-900">
-                Role
-              </th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-900">
-                Service
-              </th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-900">
-                Date
-              </th>
-              <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200 bg-white">
-            {pendingResponses.map((response) => (
-              <tr key={response.id}>
-                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-neutral-900 sm:pl-6">
-                  {response.name}
-                </td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-neutral-500">{response.role}</td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-neutral-500">{response.service}</td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-neutral-500">{response.date}</td>
-                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                  <button className="text-primary-600 hover:text-primary-900 mr-4">
-                    Remind
-                  </button>
-                  <button className="text-neutral-600 hover:text-neutral-900">
-                    Reassign
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+// Upcoming services component
+const UpcomingServices = () => {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium text-neutral-900">Upcoming Services</h3>
+      <div className="space-y-2">
+        {mockUpcomingServices.map((service) => (
+          <div key={service.id} className="p-3 bg-neutral-50 rounded-md border border-neutral-200">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-neutral-900">{service.title}</p>
+                <p className="text-xs text-neutral-500">
+                  {service.date.toLocaleDateString()} • {service.team}
+                </p>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                service.status === 'Confirmed' 
+                  ? 'bg-green-100 text-green-800' 
+                  : service.status === 'Planning' 
+                    ? 'bg-blue-100 text-blue-800' 
+                    : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {service.status}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard 
+// Quick actions component
+const QuickActions = () => {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium text-neutral-900">Quick Actions</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { title: 'Create Service', icon: '📅' },
+          { title: 'Add Song', icon: '🎵' },
+          { title: 'Schedule Team', icon: '👥' },
+          { title: 'Send Message', icon: '✉️' }
+        ].map((action, index) => (
+          <button
+            key={index}
+            className="flex flex-col items-center justify-center p-4 bg-white border border-neutral-200 rounded-md hover:bg-neutral-50 transition-colors"
+          >
+            <span className="text-2xl mb-2">{action.icon}</span>
+            <span className="text-sm font-medium text-neutral-900">{action.title}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const Dashboard = () => {
+  // Default widgets configuration
+  const defaultWidgets: Widget[] = [
+    {
+      id: 'calendar',
+      type: 'calendar',
+      title: 'Calendar',
+      size: 'large',
+      component: <Calendar events={mockEvents} />,
+      isVisible: true
+    },
+    {
+      id: 'analytics',
+      type: 'analytics',
+      title: 'Analytics',
+      size: 'medium',
+      component: <AnalyticsWidgets data={mockAnalyticsData} />,
+      isVisible: true
+    },
+    {
+      id: 'volunteers',
+      type: 'volunteers',
+      title: 'Volunteer Status',
+      size: 'small',
+      component: <VolunteerStats />,
+      isVisible: true
+    },
+    {
+      id: 'upcoming',
+      type: 'upcoming',
+      title: 'Upcoming Services',
+      size: 'small',
+      component: <UpcomingServices />,
+      isVisible: true
+    },
+    {
+      id: 'actions',
+      type: 'actions',
+      title: 'Quick Actions',
+      size: 'medium',
+      component: <QuickActions />,
+      isVisible: true
+    }
+  ];
+
+  // State for widgets
+  const [widgets, setWidgets] = useState<Widget[]>(defaultWidgets);
+
+  // Load saved widget configuration from localStorage
+  useEffect(() => {
+    const savedWidgets = localStorage.getItem('dashboardWidgets');
+    if (savedWidgets) {
+      try {
+        const parsedWidgets = JSON.parse(savedWidgets);
+        // Reattach component references since they can't be serialized
+        const hydratedWidgets = parsedWidgets.map((widget: Widget) => {
+          const defaultWidget = defaultWidgets.find(w => w.id === widget.id);
+          return {
+            ...widget,
+            component: defaultWidget ? defaultWidget.component : null
+          };
+        });
+        setWidgets(hydratedWidgets);
+      } catch (error) {
+        console.error('Failed to parse saved widgets:', error);
+      }
+    }
+  }, []);
+
+  // Save widget configuration to localStorage
+  const handleWidgetsChange = (newWidgets: Widget[]) => {
+    setWidgets(newWidgets);
+    // Save to localStorage without the component property
+    const widgetsForStorage = newWidgets.map(({ component, ...rest }) => rest);
+    localStorage.setItem('dashboardWidgets', JSON.stringify(widgetsForStorage));
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <CustomizableDashboard widgets={widgets} onWidgetsChange={handleWidgetsChange} />
+    </div>
+  );
+};
+
+export default Dashboard; 
