@@ -6,6 +6,7 @@ require('dotenv').config();
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const churchRoutes = require('./routes/churches');
 
 // Create Express app
 const app = express();
@@ -17,6 +18,7 @@ app.use(morgan('dev'));
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/churches', churchRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
