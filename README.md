@@ -220,17 +220,159 @@ We have completed the following major components:
    cd church-planner
    ```
 
-2. Install dependencies:
+2. Install dependencies for both client and server:
    ```bash
-   npm run install:all
+   # Install client dependencies
+   cd client
+   npm install
+   
+   # Install server dependencies
+   cd ../server
+   npm install
    ```
 
-3. Set up environment variables:
-   - Create a `.env` file in the server directory based on `.env.example`
+3. Set up MongoDB:
+   
+   **Option 1: Local MongoDB (Recommended for development)**
+   
+   - **Mac:**
+     ```bash
+     # Install MongoDB using Homebrew
+     brew tap mongodb/brew
+     brew install mongodb-community
+     
+     # Start MongoDB service
+     brew services start mongodb/brew/mongodb-community
+     
+     # Verify MongoDB is running
+     mongosh
+     ```
+   
+   - **Windows:**
+     - Download and install MongoDB Community Server from [MongoDB Download Center](https://www.mongodb.com/try/download/community)
+     - Follow the installation instructions
+     - Start MongoDB service from Windows Services
+   
+   - **Linux (Ubuntu):**
+     ```bash
+     # Import MongoDB public GPG key
+     wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+     
+     # Create a list file for MongoDB
+     echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+     
+     # Reload local package database
+     sudo apt-get update
+     
+     # Install MongoDB packages
+     sudo apt-get install -y mongodb-org
+     
+     # Start MongoDB service
+     sudo systemctl start mongod
+     
+     # Verify MongoDB is running
+     mongosh
+     ```
+   
+   **Option 2: MongoDB Atlas (Cloud-based)**
+   
+   - Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   - Create a new cluster
+   - Set up database access (create a user with password)
+   - Set up network access (allow access from your IP address)
+   - Get your connection string and update the `.env` file
 
-4. Start the development servers:
+4. Set up environment variables:
+   
+   - Create a `.env` file in the server directory based on `.env.example`:
+     ```bash
+     cd server
+     cp .env.example .env
+     ```
+   
+   - Update the `.env` file with your MongoDB connection string and other settings:
+     ```
+     # Server Configuration
+     PORT=5000
+     NODE_ENV=development
+     
+     # JWT Authentication
+     JWT_SECRET=your_secret_key_for_testing
+     JWT_EXPIRE=1d
+     JWT_REFRESH_EXPIRES_IN=7d
+     
+     # Database
+     # For local MongoDB
+     MONGO_URI=mongodb://localhost:27017/church-planner
+     
+     # CORS
+     CORS_ORIGIN=http://localhost:4000
+     ```
+
+5. Start the development servers:
+   
+   **Option 1: Start client and server separately (recommended for debugging)**
+   
    ```bash
+   # Terminal 1: Start the server
+   cd server
    npm run dev
+   
+   # Terminal 2: Start the client
+   cd client
+   npm run dev -- --port 4000
+   ```
+   
+   **Option 2: Start both client and server concurrently**
+   
+   ```bash
+   # From the root directory
+   npm run dev
+   ```
+
+6. Access the application:
+   - Client: http://localhost:4000
+   - Server API: http://localhost:5000
+
+### Troubleshooting
+
+For detailed troubleshooting steps, please see the [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
+
+Common issues:
+
+1. **Port conflicts:**
+   
+   If you see an error like `Error: listen EADDRINUSE: address already in use :::5000`, it means the port is already in use. You can either:
+   
+   - Kill the process using the port:
+     ```bash
+     # Find the process ID (PID)
+     lsof -i :5000
+     
+     # Kill the process
+     kill -9 <PID>
+     ```
+   
+   - Or change the port in the `.env` file:
+     ```
+     PORT=5001
+     ```
+
+2. **MongoDB connection issues:**
+   
+   If you see errors connecting to MongoDB, check that:
+   
+   - MongoDB service is running
+   - The connection string in `.env` is correct
+   - Network access is properly configured (if using Atlas)
+
+3. **Missing dependencies:**
+   
+   If you see errors about missing modules, make sure you've installed all dependencies:
+   
+   ```bash
+   cd client && npm install
+   cd ../server && npm install
    ```
 
 ## Contributing
