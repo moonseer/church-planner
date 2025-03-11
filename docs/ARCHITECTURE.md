@@ -260,38 +260,92 @@ The application uses MongoDB with Mongoose ODM for data storage. The main entiti
 
 ## Deployment Architecture
 
-The application is designed for cloud deployment with separate environments for development, staging, and production.
+### Containerized Architecture
+
+The Church Planner application is containerized using Docker, which provides a consistent environment for development, testing, and production. The containerized architecture consists of the following components:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Production                               │
-├─────────────────┬─────────────────┬─────────────────────────────┤
-│                 │                 │                             │
-│  Frontend       │  Backend        │     Database                │
-│  (Vercel)       │  (AWS/Heroku)   │     (MongoDB Atlas)         │
-│                 │                 │                             │
-└─────────────────┴─────────────────┴─────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                         Staging                                  │
-├─────────────────┬─────────────────┬─────────────────────────────┤
-│                 │                 │                             │
-│  Frontend       │  Backend        │     Database                │
-│  (Vercel)       │  (AWS/Heroku)   │     (MongoDB Atlas)         │
-│                 │                 │                             │
-└─────────────────┴─────────────────┴─────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                         Development                              │
-├─────────────────┬─────────────────┬─────────────────────────────┤
-│                 │                 │                             │
-│  Frontend       │  Backend        │     Database                │
-│  (Local)        │  (Local)        │     (Local/Atlas)           │
-│                 │                 │                             │
-└─────────────────┴─────────────────┴─────────────────────────────┘
+│                      Docker Environment                          │
+│                                                                 │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐  │
+│  │             │    │             │    │             │    │             │  │
+│  │   Client    │    │   Server    │    │  MongoDB    │    │   Redis     │  │
+│  │  Container  │    │  Container  │    │  Container  │    │  Container  │  │
+│  │             │    │             │    │             │    │             │  │
+│  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘  │
+│         │                 │                  │                  │         │
+│         └─────────────────┼──────────────────┼──────────────────┘         │
+│                           │                  │                            │
+│                  ┌────────┴──────────┐       │                            │
+│                  │                   │       │                            │
+│                  │  Docker Network   │       │                            │
+│                  │                   │       │                            │
+│                  └───────────────────┘       │                            │
+│                                              │                            │
+│                  ┌───────────────────┐       │                            │
+│                  │                   │       │                            │
+│                  │  Docker Volumes   │───────┘                            │
+│                  │                   │                                    │
+│                  └───────────────────┘                                    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### CI/CD Pipeline
+#### Container Components
+
+1. **Client Container**:
+   - Development: React application with hot-reloading
+   - Production: Nginx serving optimized static files
+   - Exposed on port 4000 (dev) or 80 (prod)
+
+2. **Server Container**:
+   - Node.js/Express API
+   - Development: Uses nodemon for auto-restart
+   - Production: Optimized Node.js runtime
+   - Exposed on port 5000
+
+3. **MongoDB Container**:
+   - Database for the application
+   - Development: Exposed on port 27017
+   - Production: Secured with authentication
+   - Persistent data stored in a Docker volume
+
+4. **Redis Container**:
+   - Used for caching and session management
+   - Development: Exposed on port 6379
+   - Production: Secured with password
+   - Persistent data stored in a Docker volume
+
+#### Development vs. Production
+
+The containerization strategy differs between development and production environments:
+
+**Development Environment**:
+- Volume sharing for hot-reloading
+- Exposed ports for direct access to services
+- Environment variables stored in docker-compose.yml
+- Minimal security configurations
+
+**Production Environment**:
+- Multi-stage builds for optimized images
+- Nginx for serving static files
+- Secure MongoDB and Redis configurations
+- Environment variables loaded from .env file
+- Proper network isolation
+
+#### Volume Sharing
+
+In development mode, the application uses Docker volumes to share code between the host and containers:
+
+- `./client:/app`: Client source code is mounted into the container
+- `./server:/app`: Server source code is mounted into the container
+- `mongodb-data:/data/db`: Persistent MongoDB data
+- `redis-data:/data`: Persistent Redis data
+
+This allows developers to make changes to the code and see them reflected immediately without rebuilding the containers.
+
+## CI/CD Pipeline
 
 The application uses GitHub Actions for continuous integration and deployment.
 

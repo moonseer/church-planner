@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 
 export interface IUser extends Document {
   name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   churchName: string;
@@ -21,6 +23,18 @@ const UserSchema = new Schema<IUser>(
       required: [true, 'Please provide a name'],
       trim: true,
       maxlength: [50, 'Name cannot be more than 50 characters'],
+    },
+    firstName: {
+      type: String,
+      required: [true, 'Please provide a first name'],
+      trim: true,
+      maxlength: [50, 'First name cannot be more than 50 characters'],
+    },
+    lastName: {
+      type: String,
+      required: [true, 'Please provide a last name'],
+      trim: true,
+      maxlength: [50, 'Last name cannot be more than 50 characters'],
     },
     email: {
       type: String,

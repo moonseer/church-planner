@@ -191,10 +191,17 @@ We have completed the following major components:
 
 - **Project Setup**: Basic structure, configuration, and documentation
 - **Design System**: Color scheme, typography, and component library
-- **Authentication System**: User registration, login/logout, password reset
-- **User Management**: Profile management, privacy controls, GDPR compliance
-- **Church Management**: Church profiles, service schedules, ministry management
+- **Authentication System**: User login, password reset, and JWT authentication
+- **User Management**: Basic user model with roles
+- **Church Management**: Initial church profiles and service schedules
 - **Core UI**: Navigation, layout, and dashboard components
+
+Recent improvements:
+- Fixed server connection issues by changing the default port from 5000 to 8080
+- Implemented proper User schema definition in the server
+- Enhanced error handling in client-side components
+- Improved user data handling in the authentication flow
+- Set up Jest testing framework for server components
 
 ## Documentation
 
@@ -208,11 +215,40 @@ We have completed the following major components:
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
-- npm or yarn
-- MongoDB (local or Atlas)
+- Node.js (v14 or higher) - *for local development without Docker*
+- npm or yarn - *for local development without Docker*
+- MongoDB (local or Atlas) - *for local development without Docker*
+- Docker and Docker Compose - *for containerized development and deployment*
 
 ### Installation
+
+#### Option 1: Using Docker (Recommended)
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/church-planner.git
+   cd church-planner
+   ```
+
+2. Start the development environment:
+   ```bash
+   # Make the helper script executable
+   chmod +x docker-commands.sh
+   
+   # Start the development environment
+   ./docker-commands.sh dev-up
+   ```
+
+3. Access the application:
+   - Client: http://localhost:4000
+   - Server API: http://localhost:5000
+
+4. To stop the development environment:
+   ```bash
+   ./docker-commands.sh dev-down
+   ```
+
+#### Option 2: Manual Setup (Without Docker)
 
 1. Clone the repository:
    ```bash
@@ -334,6 +370,94 @@ We have completed the following major components:
    - Client: http://localhost:4000
    - Server API: http://localhost:5000
 
+### Docker Development
+
+The Church Planner application is containerized using Docker, which provides several benefits:
+
+1. **Consistent Environment**: Everyone works with the same environment, eliminating "it works on my machine" issues.
+2. **Isolated Services**: Each component (client, server, database) runs in its own container.
+3. **Easy Setup**: No need to install MongoDB or other dependencies locally.
+4. **Volume Sharing**: Code changes are reflected immediately without rebuilding containers.
+
+#### Docker Commands
+
+We've provided a helper script to simplify Docker operations:
+
+```bash
+# Start development environment
+./docker-commands.sh dev-up
+
+# View logs from all containers
+./docker-commands.sh dev-logs
+
+# Stop development environment
+./docker-commands.sh dev-down
+
+# Start production environment
+./docker-commands.sh prod-up
+
+# Stop production environment
+./docker-commands.sh prod-down
+
+# Rebuild all containers
+./docker-commands.sh build
+
+# Clean up all containers, volumes, and images
+./docker-commands.sh clean
+```
+
+#### Container Structure
+
+The application is divided into the following containers:
+
+1. **Client Container**: React frontend application
+   - Development: Hot-reloading enabled
+   - Production: Nginx serving static files
+
+2. **Server Container**: Node.js/Express backend API
+   - Development: Nodemon for auto-restart
+   - Production: Optimized Node.js runtime
+
+3. **MongoDB Container**: Database for the application
+   - Development: Exposed port for direct access
+   - Production: Secured with authentication
+
+4. **Redis Container**: For caching (optional)
+   - Used for performance optimization
+
+#### Volume Sharing
+
+In development mode, the following volumes are shared:
+
+- `./client:/app`: Client source code is mounted into the container
+- `./server:/app`: Server source code is mounted into the container
+
+This allows you to make changes to the code and see them reflected immediately without rebuilding the containers.
+
+### Production Deployment
+
+For production deployment, use the production Docker Compose file:
+
+1. Create a `.env` file based on `.env.prod.example`:
+   ```bash
+   cp .env.prod.example .env
+   ```
+
+2. Update the environment variables with your production values.
+
+3. Start the production environment:
+   ```bash
+   ./docker-commands.sh prod-up
+   ```
+
+The production setup includes:
+
+- Optimized builds for both client and server
+- Nginx serving static files for the client
+- Secure MongoDB with authentication
+- Redis with password protection
+- Environment variables for sensitive information
+
 ### Troubleshooting
 
 For detailed troubleshooting steps, please see the [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
@@ -353,10 +477,12 @@ Common issues:
      kill -9 <PID>
      ```
    
-   - Or change the port in the `.env` file:
+   - Or change the port in the `.env` file and `docker-compose.yml`:
      ```
-     PORT=5001
+     PORT=8080
      ```
+   
+   **Note for macOS users**: Port 5000 is often used by the AirPlay service on macOS. We recommend using port 8080 instead to avoid conflicts. This has been set as the default in recent versions.
 
 2. **MongoDB connection issues:**
    
@@ -373,6 +499,28 @@ Common issues:
    ```bash
    cd client && npm install
    cd ../server && npm install
+   ```
+
+4. **Authentication errors:**
+
+   If you encounter issues with authentication:
+   
+   - Check that the User model is properly defined in the server
+   - Verify that JWT tokens are being correctly generated and validated
+   - Ensure the client is correctly handling user data
+   - Check browser console for detailed error messages
+
+5. **Running tests:**
+
+   To run the server tests:
+   ```bash
+   cd server
+   npm test
+   ```
+
+   If you encounter issues with TypeScript types in tests:
+   ```bash
+   npm install --save-dev @types/jest
    ```
 
 ## Contributing

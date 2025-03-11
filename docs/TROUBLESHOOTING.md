@@ -193,6 +193,127 @@ Registration failed: No response from server. Please check if the server is runn
 
 2. Make sure all required environment variables are set in the `.env` file
 
+## Docker Issues
+
+### Issue: Container fails to start
+
+**Error message:**
+```
+Error response from daemon: driver failed programming external connectivity on endpoint
+```
+
+**Solution:**
+
+1. Check if another container is using the same port:
+   ```bash
+   docker ps -a
+   ```
+
+2. Stop and remove conflicting containers:
+   ```bash
+   docker stop <container_id>
+   docker rm <container_id>
+   ```
+
+3. Restart Docker:
+   ```bash
+   # Mac
+   osascript -e 'quit app "Docker"'
+   open -a Docker
+   
+   # Windows
+   Restart Docker Desktop
+   
+   # Linux
+   sudo systemctl restart docker
+   ```
+
+### Issue: Volume mounting issues
+
+**Error message:**
+```
+Error response from daemon: invalid mount config for type "bind": bind source path does not exist
+```
+
+**Solution:**
+
+1. Make sure the source path exists on your host machine
+2. Use absolute paths in your docker-compose.yml file
+3. Check file permissions on the host directory
+
+### Issue: Changes not reflecting in development
+
+**Problem:**
+You make changes to your code, but they don't appear in the running application.
+
+**Solution:**
+
+1. Make sure volume mounting is working correctly:
+   ```bash
+   # Check the container's file system
+   docker exec -it church-planner-client ls -la /app
+   ```
+
+2. Restart the container:
+   ```bash
+   ./docker-commands.sh dev-down
+   ./docker-commands.sh dev-up
+   ```
+
+3. Check if the development server is watching for changes:
+   ```bash
+   # View logs to see if file changes are detected
+   docker logs church-planner-client
+   ```
+
+### Issue: MongoDB connection fails in Docker
+
+**Error message:**
+```
+MongoNetworkError: failed to connect to server [mongodb:27017]
+```
+
+**Solution:**
+
+1. Make sure the MongoDB container is running:
+   ```bash
+   docker ps | grep mongodb
+   ```
+
+2. Check if the MongoDB container is healthy:
+   ```bash
+   docker logs church-planner-mongodb
+   ```
+
+3. Verify the connection string in the server container:
+   ```bash
+   # For development
+   MONGO_URI=mongodb://mongodb:27017/church-planner
+   
+   # For production with authentication
+   MONGO_URI=mongodb://username:password@mongodb:27017/church-planner?authSource=admin
+   ```
+
+4. Ensure the containers are on the same network:
+   ```bash
+   docker network inspect church-planner-network
+   ```
+
+### Issue: Docker build fails
+
+**Error message:**
+```
+npm ERR! code ENOENT
+npm ERR! syscall open
+npm ERR! path /app/package.json
+```
+
+**Solution:**
+
+1. Make sure the Dockerfile is in the correct directory
+2. Check that the COPY commands are correct
+3. Verify that the package.json file exists and is readable
+
 ## Still Having Issues?
 
 If you're still experiencing problems after trying these solutions:

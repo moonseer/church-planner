@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Frontend React application
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: church-planner-client
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://server:8080/api
+    depends_on:
+      - server
+    networks:
+      - church-planner-network
+    restart: unless-stopped
+
+  # Backend Node.js/Express API
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: church-planner-server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    environment:
+      - PORT=8080
+      - NODE_ENV=development
+      - JWT_SECRET=your_secret_key_for_testing
+      - JWT_EXPIRE=1d
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - MONGO_URI=mongodb://mongodb:27017/church-planner
+      - CORS_ORIGIN=http://localhost:4000
+    depends_on:
+      - mongodb
+    networks:
+      - church-planner-network
+    restart: unless-stopped
+    command: >
+      sh -c "
+        npm install -g ts-node &&
+        npm install --save-dev @types/express @types/cors @types/jsonwebtoken @types/bcryptjs &&
+        npm run dev
+      "
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: church-planner-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - church-planner-network
+    restart: unless-stopped
+
+  # Redis for caching (optional - for future use)
+  redis:
+    image: redis:alpine
+    container_name: church-planner-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - church-planner-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+networks:
+  church-planner-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  redis-data: 

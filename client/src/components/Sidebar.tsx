@@ -11,6 +11,8 @@ interface NavItem {
 interface User {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   churchName: string;
   role: string;
@@ -35,6 +37,24 @@ const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   user,
 }) => {
+  // Get the user's initials or a fallback
+  const getUserInitial = () => {
+    if (!user || !user.name) return '?';
+    return user.name.charAt(0).toUpperCase();
+  };
+
+  // Get the display name or a fallback
+  const getDisplayName = () => {
+    if (!user) return 'Guest User';
+    return user.name || 'User';
+  };
+
+  // Get the role or a fallback
+  const getRole = () => {
+    if (!user) return 'Not logged in';
+    return user.role || 'User';
+  };
+
   return (
     <div
       className={`bg-white shadow-md h-screen transition-all duration-300 ${
@@ -110,56 +130,41 @@ const Sidebar: React.FC<SidebarProps> = ({
       </nav>
       
       <div className="absolute bottom-0 w-full p-4 border-t border-neutral-200">
-        {user ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-800 font-medium">
-                {user.name.charAt(0)}
-              </div>
-              
-              {!isCollapsed && (
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-neutral-900">{user.name}</p>
-                  <p className="text-xs text-neutral-500">{user.role}</p>
-                </div>
-              )}
-            </div>
-            
-            {!isCollapsed && onLogout && (
-              <button
-                onClick={onLogout}
-                className="text-neutral-400 hover:text-neutral-600"
-                aria-label="Logout"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-8 1a1 1 0 00-1 1v2a1 1 0 001 1h3a1 1 0 100-2H7V9a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
-        ) : (
+        <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-600 font-medium">
-              ?
+            <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-800 font-medium">
+              {getUserInitial()}
             </div>
             
             {!isCollapsed && (
               <div className="ml-3">
-                <p className="text-sm font-medium text-neutral-900">Guest User</p>
-                <p className="text-xs text-neutral-500">Not logged in</p>
+                <p className="text-sm font-medium text-neutral-900">{getDisplayName()}</p>
+                <p className="text-xs text-neutral-500">{getRole()}</p>
               </div>
             )}
           </div>
-        )}
+          
+          {!isCollapsed && user && onLogout && (
+            <button
+              onClick={onLogout}
+              className="text-neutral-400 hover:text-neutral-600"
+              aria-label="Logout"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-8 1a1 1 0 00-1 1v2a1 1 0 001 1h3a1 1 0 100-2H7V9a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

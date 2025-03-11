@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Frontend React application (production build)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.prod
+    container_name: church-planner-client-prod
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - church-planner-network
+    restart: unless-stopped
+
+  # Backend Node.js/Express API (production)
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.prod
+    container_name: church-planner-server-prod
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRE=${JWT_EXPIRE}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN}
+      - MONGO_URI=${MONGO_URI}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+    depends_on:
+      - mongodb
+    networks:
+      - church-planner-network
+    restart: unless-stopped
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: church-planner-mongodb-prod
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - church-planner-network
+    restart: unless-stopped
+    # For production, we don't expose MongoDB port to the host
+    # Add authentication for MongoDB in production
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    command: [--auth]
+
+  # Redis for caching
+  redis:
+    image: redis:alpine
+    container_name: church-planner-redis-prod
+    volumes:
+      - redis-data:/data
+    networks:
+      - church-planner-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+
+networks:
+  church-planner-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  redis-data: 

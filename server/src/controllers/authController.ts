@@ -92,11 +92,18 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
     // The user should be attached to the request by the auth middleware
     const user = req.user as IUser;
 
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+
     res.status(200).json({
       success: true,
       user: {
         id: user._id,
         name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         churchName: user.churchName,
         role: user.role,
