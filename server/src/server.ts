@@ -5,6 +5,7 @@ import connectDB from './config/database';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import eventRoutes from './routes/eventRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -192,6 +193,66 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
   }
 });
 
+// Register route
+app.post('/api/auth/register', async (req: Request, res: Response) => {
+  try {
+    const { name, firstName, lastName, email, password, churchName } = req.body;
+
+    // Validate input
+    if (!firstName || !lastName || !email || !password || !churchName) {
+      res.status(400).json({ 
+        success: false, 
+        message: 'Please provide all required fields: firstName, lastName, email, password, churchName' 
+      });
+      return;
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      res.status(400).json({ success: false, message: 'Email already in use' });
+      return;
+    }
+
+    // Create new user
+    const user = await User.create({
+      name: name || `${firstName} ${lastName}`,
+      firstName,
+      lastName,
+      email,
+      password,
+      churchName,
+    });
+
+    // Generate JWT token
+    const token = user.generateAuthToken();
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        churchName: user.churchName,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    
+    if (error instanceof Error && error.name === 'ValidationError') {
+      const messages = Object.values((error as any).errors).map((val: any) => val.message);
+      res.status(400).json({ success: false, message: messages.join(', ') });
+      return;
+    }
+    
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Get current user route
 app.get('/api/auth/me', protect, (req: Request, res: Response) => {
   try {
@@ -223,6 +284,9 @@ app.get('/api/debug', (req: Request, res: Response) => {
     corsOrigin: process.env.CORS_ORIGIN
   });
 });
+
+// Use event routes
+app.use('/api', protect, eventRoutes);
 
 // Start server
 app.listen(PORT, () => {

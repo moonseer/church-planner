@@ -12,14 +12,13 @@ COPY package*.json ./
 RUN npm install
 
 # Install ts-node globally for running TypeScript scripts
-RUN npm install -g ts-node
+RUN npm install -g ts-node nodemon
 
-# Copy the rest of the server code
-COPY . .
+# We don't need to copy the source code here since we're using volumes
+# COPY . .
 
 # Expose the port the app runs on
-EXPOSE 5000
+EXPOSE 8080
 
-# Command to run the app in development mode
-# This will be overridden by the command in docker-compose.yml
+# Command to run the app in development mode with hot reloading
 CMD ["npm", "run", "dev"] 

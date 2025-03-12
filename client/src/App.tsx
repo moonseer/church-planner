@@ -130,12 +130,12 @@ function App() {
     }
   };
 
-  const handleRegister = async (name: string, email: string, password: string, churchName: string) => {
+  const handleRegister = async (firstName: string, lastName: string, email: string, password: string, churchName: string) => {
     setIsLoading(true);
     setMessage('');
 
     try {
-      console.log('Attempting registration with:', { name, email, password, churchName });
+      console.log('Attempting registration with:', { firstName, lastName, email, churchName });
       
       // First, try a simple fetch to check if the server is reachable
       try {
@@ -146,7 +146,9 @@ function App() {
       }
       
       const response = await axios.post('http://localhost:8080/api/auth/register', {
-        name,
+        name: `${firstName} ${lastName}`, // Combine for the name field
+        firstName,
+        lastName,
         email,
         password,
         churchName

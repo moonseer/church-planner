@@ -14,6 +14,8 @@ services:
       - /app/node_modules
     environment:
       - VITE_API_URL=http://server:8080/api
+      - CHOKIDAR_USEPOLLING=true  # Enable polling for hot reload in Docker
+      - WDS_SOCKET_PORT=4000  # WebSocket port for hot reload
     depends_on:
       - server
     networks:
@@ -29,7 +31,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./server:/app
+      - ./server:/app  # Fixed: mounting server directory instead of client
       - /app/node_modules
     environment:
       - PORT=8080
@@ -39,6 +41,7 @@ services:
       - JWT_REFRESH_EXPIRES_IN=7d
       - MONGO_URI=mongodb://mongodb:27017/church-planner
       - CORS_ORIGIN=http://localhost:4000
+      - CHOKIDAR_USEPOLLING=true  # Enable polling for nodemon in Docker
     depends_on:
       - mongodb
     networks:
@@ -46,7 +49,7 @@ services:
     restart: unless-stopped
     command: >
       sh -c "
-        npm install -g ts-node &&
+        npm install -g ts-node nodemon &&
         npm install --save-dev @types/express @types/cors @types/jsonwebtoken @types/bcryptjs &&
         npm run dev
       "

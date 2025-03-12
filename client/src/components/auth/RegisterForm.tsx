@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface RegisterFormProps {
-  onSubmit: (name: string, email: string, password: string, churchName: string) => void;
+  onSubmit: (firstName: string, lastName: string, email: string, password: string, churchName: string) => void;
   onLogin: () => void;
   isLoading?: boolean;
   error?: string;
@@ -13,7 +13,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
   isLoading = false,
   error,
 }) => {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,7 +30,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
     }
     
     setPasswordError('');
-    onSubmit(name, email, password, churchName);
+    onSubmit(firstName, lastName, email, password, churchName);
   };
 
   return (
@@ -46,19 +47,35 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
       )}
 
       <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-1">
-            Full Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="John Doe"
-            required
-          />
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label htmlFor="firstName" className="block text-sm font-medium text-neutral-700 mb-1">
+              First Name
+            </label>
+            <input
+              id="firstName"
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="John"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="lastName" className="block text-sm font-medium text-neutral-700 mb-1">
+              Last Name
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Doe"
+              required
+            />
+          </div>
         </div>
 
         <div className="mb-4">

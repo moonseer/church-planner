@@ -8,7 +8,7 @@ type AuthView = 'login' | 'register' | 'forgot-password' | 'reset-password';
 
 interface AuthPageProps {
   onLogin: (email: string, password: string) => void;
-  onRegister: (name: string, email: string, password: string, churchName: string) => void;
+  onRegister: (firstName: string, lastName: string, email: string, password: string, churchName: string) => void;
   onForgotPassword: (email: string) => void;
   onResetPassword: (password: string, token: string) => void;
   isLoading?: boolean;
