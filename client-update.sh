@@ -81,6 +81,23 @@ case "$ACTION" in
     docker cp client/src/components/dashboard/Calendar.tsx church-planner-client:/app/src/components/dashboard/
     docker cp client/src/components/dashboard/SimpleCalendar.tsx church-planner-client:/app/src/components/dashboard/
     
+    # Ensure the events directory exists
+    docker exec church-planner-client mkdir -p /app/src/components/events
+    
+    # Copy the event components
+    docker cp client/src/components/events/CreateEventButton.tsx church-planner-client:/app/src/components/events/
+    docker cp client/src/components/events/EventForm.tsx church-planner-client:/app/src/components/events/
+    docker cp client/src/components/events/EventFormModal.tsx church-planner-client:/app/src/components/events/
+    
+    # Ensure the types directory exists
+    docker exec church-planner-client mkdir -p /app/src/types
+    
+    # Copy the types
+    docker cp client/src/types/event.ts church-planner-client:/app/src/types/
+    
+    # Copy the services
+    docker cp client/src/services/eventService.ts church-planner-client:/app/src/services/
+    
     echo "Restarting the client container..."
     docker restart church-planner-client
     
@@ -91,6 +108,23 @@ case "$ACTION" in
   dashboard)
     echo "Updating Dashboard component..."
     docker cp client/src/pages/Dashboard.tsx church-planner-client:/app/src/pages/
+    
+    # Ensure the events directory exists
+    docker exec church-planner-client mkdir -p /app/src/components/events
+    
+    # Copy the event components
+    docker cp client/src/components/events/CreateEventButton.tsx church-planner-client:/app/src/components/events/
+    docker cp client/src/components/events/EventForm.tsx church-planner-client:/app/src/components/events/
+    docker cp client/src/components/events/EventFormModal.tsx church-planner-client:/app/src/components/events/
+    
+    # Ensure the types directory exists
+    docker exec church-planner-client mkdir -p /app/src/types
+    
+    # Copy the types
+    docker cp client/src/types/event.ts church-planner-client:/app/src/types/
+    
+    # Copy the services
+    docker cp client/src/services/eventService.ts church-planner-client:/app/src/services/
     
     echo "Restarting the client container..."
     docker restart church-planner-client

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import Event, { IEvent } from '../models/Event';
+import Event, { IEvent, EventType, EventStatus } from '../models/Event';
 import mongoose from 'mongoose';
+import { ApiResponse, createSuccessResponse, createErrorResponse } from '../types/apiResponse';
 
 // Extend the Express Request type to include user property
 interface AuthRequest extends Request {
@@ -13,14 +14,20 @@ export const getEvents = async (req: Request, res: Response) => {
     const { churchId } = req.params;
     const { month, year, type, status } = req.query;
     
+    console.log('getEvents called with params:', { churchId, month, year, type, status });
+    
+    // Convert churchId string to ObjectId
+    const churchObjectId = new mongoose.Types.ObjectId(churchId);
+    
     // Build query
-    const query: any = { churchId };
+    const query: any = { churchId: churchObjectId };
     
     // Filter by month and year if provided
     if (month && year) {
       const startDate = new Date(parseInt(year as string), parseInt(month as string) - 1, 1);
       const endDate = new Date(parseInt(year as string), parseInt(month as string), 0);
       query.date = { $gte: startDate, $lte: endDate };
+      console.log('Date range filter:', { startDate, endDate });
     }
     
     // Filter by type if provided
@@ -33,19 +40,16 @@ export const getEvents = async (req: Request, res: Response) => {
       query.status = status;
     }
     
+    console.log('MongoDB query:', JSON.stringify(query));
+    
     const events = await Event.find(query).sort({ date: 1 });
     
-    res.status(200).json({
-      success: true,
-      count: events.length,
-      data: events
-    });
+    console.log('Events found:', events.length);
+    
+    res.status(200).json(createSuccessResponse(events, undefined, events.length));
   } catch (error) {
     console.error('Error getting events:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
+    res.status(500).json(createErrorResponse('Server Error', []));
   }
 };
 
@@ -55,31 +59,19 @@ export const getEvent = async (req: Request, res: Response) => {
     const { id } = req.params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid event ID'
-      });
+      return res.status(400).json(createErrorResponse('Invalid event ID', null));
     }
     
     const event = await Event.findById(id);
     
     if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: 'Event not found'
-      });
+      return res.status(404).json(createErrorResponse('Event not found', null));
     }
     
-    res.status(200).json({
-      success: true,
-      data: event
-    });
+    res.status(200).json(createSuccessResponse(event));
   } catch (error) {
     console.error('Error getting event:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
+    res.status(500).json(createErrorResponse('Server Error', null));
   }
 };
 
@@ -89,42 +81,40 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
     const { churchId } = req.params;
     const userId = req.user?._id;
     
+    console.log('createEvent called with params:', { churchId, userId });
+    console.log('Request body:', req.body);
+    
     if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User not authenticated'
-      });
+      return res.status(401).json(createErrorResponse('User not authenticated', null));
     }
+    
+    // Convert churchId string to ObjectId
+    const churchObjectId = new mongoose.Types.ObjectId(churchId);
     
     // Create event with church and user IDs
     const eventData = {
       ...req.body,
-      churchId,
+      churchId: churchObjectId,
       createdBy: userId
     };
     
+    console.log('Creating event with data:', eventData);
+    
     const event = await Event.create(eventData);
     
-    res.status(201).json({
-      success: true,
-      data: event
-    });
+    console.log('Event created successfully:', event);
+    
+    res.status(201).json(createSuccessResponse(event));
   } catch (error) {
     console.error('Error creating event:', error);
     
     if (error instanceof Error && error.name === 'ValidationError') {
       const messages = Object.values((error as any).errors).map((val: any) => val.message);
       
-      return res.status(400).json({
-        success: false,
-        error: messages
-      });
+      return res.status(400).json(createErrorResponse(messages.join(', '), null));
     }
     
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
+    res.status(500).json(createErrorResponse('Server Error', null));
   }
 };
 
@@ -134,19 +124,13 @@ export const updateEvent = async (req: Request, res: Response) => {
     const { id } = req.params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid event ID'
-      });
+      return res.status(400).json(createErrorResponse('Invalid event ID', null));
     }
     
     const event = await Event.findById(id);
     
     if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: 'Event not found'
-      });
+      return res.status(404).json(createErrorResponse('Event not found', null));
     }
     
     // Update the event
@@ -156,26 +140,17 @@ export const updateEvent = async (req: Request, res: Response) => {
       { new: true, runValidators: true }
     );
     
-    res.status(200).json({
-      success: true,
-      data: updatedEvent
-    });
+    res.status(200).json(createSuccessResponse(updatedEvent!));
   } catch (error) {
     console.error('Error updating event:', error);
     
     if (error instanceof Error && error.name === 'ValidationError') {
       const messages = Object.values((error as any).errors).map((val: any) => val.message);
       
-      return res.status(400).json({
-        success: false,
-        error: messages
-      });
+      return res.status(400).json(createErrorResponse(messages.join(', '), null));
     }
     
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
+    res.status(500).json(createErrorResponse('Server Error', null));
   }
 };
 
@@ -185,33 +160,21 @@ export const deleteEvent = async (req: Request, res: Response) => {
     const { id } = req.params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid event ID'
-      });
+      return res.status(400).json(createErrorResponse('Invalid event ID', null));
     }
     
     const event = await Event.findById(id);
     
     if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: 'Event not found'
-      });
+      return res.status(404).json(createErrorResponse('Event not found', null));
     }
     
     await Event.findByIdAndDelete(id);
     
-    res.status(200).json({
-      success: true,
-      data: {}
-    });
+    res.status(200).json(createSuccessResponse(null, 'Event deleted successfully'));
   } catch (error) {
     console.error('Error deleting event:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
+    res.status(500).json(createErrorResponse('Server Error', null));
   }
 };
 
@@ -222,136 +185,319 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
     const userId = req.user?._id;
     
     if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User not authenticated'
-      });
+      return res.status(401).json(createErrorResponse('User not authenticated', []));
     }
     
+    // Convert churchId string to ObjectId
+    const churchObjectId = new mongoose.Types.ObjectId(churchId);
+    
+    // Get current date info
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
     // Sample events for March 2025
-    const sampleEvents = [
+    const march2025Events = [
       {
-        title: 'Sunday Service',
+        title: 'Sunday Morning Service',
         date: new Date(2025, 2, 2, 9, 0), // March 2, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service',
-        status: 'published',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
         description: 'Regular Sunday worship service with communion.',
         location: 'Main Sanctuary',
         organizer: 'Pastor Johnson',
         attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
-        churchId,
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Evening Service',
+        date: new Date(2025, 2, 2, 18, 0), // March 2, 2025 Evening
+        time: '6:00 PM - 7:30 PM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Evening worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
         createdBy: userId
       },
       {
         title: 'Worship Practice',
         date: new Date(2025, 2, 4, 18, 0), // March 4, 2025
         time: '6:00 PM - 8:00 PM',
-        type: 'rehearsal',
-        status: 'draft',
-        description: 'Weekly worship team rehearsal for upcoming Sunday service.',
+        type: 'rehearsal' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Weekly worship team practice for upcoming Sunday service.',
         location: 'Worship Room',
         organizer: 'Worship Leader',
-        attendees: ['Vocalists', 'Band Members', 'Sound Engineer'],
-        churchId,
+        attendees: ['Worship Team', 'Tech Team'],
+        churchId: churchObjectId,
         createdBy: userId
       },
       {
         title: 'Youth Group',
         date: new Date(2025, 2, 7, 19, 0), // March 7, 2025
         time: '7:00 PM - 9:00 PM',
-        type: 'youth',
-        status: 'draft',
+        type: 'youth' as EventType,
+        status: 'published' as EventStatus,
         description: 'Weekly youth group meeting with games, worship, and Bible study.',
         location: 'Youth Room',
         organizer: 'Youth Pastor',
-        attendees: ['Youth Leaders', 'Students'],
-        churchId,
-        createdBy: userId
-      },
-      {
-        title: 'Leadership Meeting',
-        date: new Date(2025, 2, 15, 12, 0), // March 15, 2025
-        time: '12:00 PM - 1:30 PM',
-        type: 'meeting',
-        status: 'published',
-        description: 'Monthly leadership team meeting to discuss church vision and upcoming events.',
-        location: 'Conference Room',
-        organizer: 'Senior Pastor',
-        attendees: ['Elders', 'Ministry Leaders', 'Staff'],
-        churchId,
+        attendees: ['Youth Team', 'Volunteers'],
+        churchId: churchObjectId,
         createdBy: userId
       },
       {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 9, 9, 0), // March 9, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service',
-        status: 'draft',
-        description: 'Regular Sunday morning worship service.',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
         organizer: 'Pastor Johnson',
-        attendees: ['Team A', 'Tech Team', 'Hospitality Team'],
-        churchId,
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Evening Service',
+        date: new Date(2025, 2, 9, 18, 0), // March 9, 2025 Evening
+        time: '6:00 PM - 7:30 PM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Evening worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Leadership Meeting',
+        date: new Date(2025, 2, 15, 12, 0), // March 15, 2025
+        time: '12:00 PM - 2:00 PM',
+        type: 'meeting' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Monthly leadership team meeting to discuss church vision and upcoming events.',
+        location: 'Conference Room',
+        organizer: 'Senior Pastor',
+        attendees: ['Leadership Team', 'Ministry Leaders'],
+        churchId: churchObjectId,
         createdBy: userId
       },
       {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 16, 9, 0), // March 16, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service',
-        status: 'published',
-        description: 'Regular Sunday morning worship service.',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
         organizer: 'Pastor Johnson',
-        attendees: ['Team B', 'Tech Team', 'Hospitality Team'],
-        churchId,
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Evening Service',
+        date: new Date(2025, 2, 16, 18, 0), // March 16, 2025 Evening
+        time: '6:00 PM - 7:30 PM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Evening worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
         createdBy: userId
       },
       {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 23, 9, 0), // March 23, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service',
-        status: 'draft',
-        description: 'Regular Sunday morning worship service.',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
         organizer: 'Pastor Johnson',
-        attendees: ['Team C', 'Tech Team', 'Hospitality Team'],
-        churchId,
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Evening Service',
+        date: new Date(2025, 2, 23, 18, 0), // March 23, 2025 Evening
+        time: '6:00 PM - 7:30 PM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Evening worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
         createdBy: userId
       },
       {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 30, 9, 0), // March 30, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service',
-        status: 'draft',
-        description: 'Regular Sunday morning worship service.',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
         organizer: 'Pastor Johnson',
-        attendees: ['Team D', 'Tech Team', 'Hospitality Team'],
-        churchId,
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Evening Service',
+        date: new Date(2025, 2, 30, 18, 0), // March 30, 2025 Evening
+        time: '6:00 PM - 7:30 PM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Evening worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
         createdBy: userId
       }
     ];
     
-    // Clear existing events for this church
-    await Event.deleteMany({ churchId });
+    // Sample events for current month
+    const currentMonthEvents = [
+      {
+        title: 'Sunday Service',
+        date: new Date(currentYear, currentMonth, 1, 9, 0), // First Sunday of current month
+        time: '9:00 AM - 11:00 AM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service with communion.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Worship Practice',
+        date: new Date(currentYear, currentMonth, 3, 18, 0), // Wednesday of first week
+        time: '6:00 PM - 8:00 PM',
+        type: 'rehearsal' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Weekly worship team practice for upcoming Sunday service.',
+        location: 'Worship Room',
+        organizer: 'Worship Leader',
+        attendees: ['Worship Team', 'Tech Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Youth Group',
+        date: new Date(currentYear, currentMonth, 5, 19, 0), // Friday of first week
+        time: '7:00 PM - 9:00 PM',
+        type: 'youth' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Weekly youth group meeting with games, worship, and Bible study.',
+        location: 'Youth Room',
+        organizer: 'Youth Pastor',
+        attendees: ['Youth Team', 'Volunteers'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Service',
+        date: new Date(currentYear, currentMonth, 8, 9, 0), // Second Sunday
+        time: '9:00 AM - 11:00 AM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Leadership Meeting',
+        date: new Date(currentYear, currentMonth, 14, 12, 0), // Second Saturday
+        time: '12:00 PM - 2:00 PM',
+        type: 'meeting' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Monthly leadership team meeting to discuss church vision and upcoming events.',
+        location: 'Conference Room',
+        organizer: 'Senior Pastor',
+        attendees: ['Leadership Team', 'Ministry Leaders'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Service',
+        date: new Date(currentYear, currentMonth, 15, 9, 0), // Third Sunday
+        time: '9:00 AM - 11:00 AM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Service',
+        date: new Date(currentYear, currentMonth, 22, 9, 0), // Fourth Sunday
+        time: '9:00 AM - 11:00 AM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      },
+      {
+        title: 'Sunday Service',
+        date: new Date(currentYear, currentMonth, 29, 9, 0), // Fifth Sunday (if exists)
+        time: '9:00 AM - 11:00 AM',
+        type: 'service' as EventType,
+        status: 'published' as EventStatus,
+        description: 'Regular Sunday worship service.',
+        location: 'Main Sanctuary',
+        organizer: 'Pastor Johnson',
+        attendees: ['Worship Team', 'Tech Team', 'Hospitality Team'],
+        churchId: churchObjectId,
+        createdBy: userId
+      }
+    ];
     
-    // Insert sample events
-    const events = await Event.insertMany(sampleEvents);
+    // Combine all events
+    const allEvents = [...march2025Events, ...currentMonthEvents];
     
-    res.status(201).json({
-      success: true,
-      count: events.length,
-      data: events
+    // Delete existing events for this church
+    await Event.deleteMany({
+      churchId: churchObjectId
     });
+    
+    // Create new events
+    const events = await Event.insertMany(allEvents);
+    
+    // Convert to response format
+    const responseData = events.map(event => event.toJSON());
+    
+    res.status(201).json(createSuccessResponse(
+      responseData, 
+      'Sample events created successfully', 
+      events.length
+    ));
   } catch (error) {
     console.error('Error seeding events:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
+    res.status(500).json(createErrorResponse('Server Error', []));
   }
 }; 

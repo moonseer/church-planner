@@ -12,13 +12,13 @@ const router = express.Router();
 
 // Define routes
 // Get all events for a church
-router.get('/churches/:churchId/events', getEvents);
+router.get('/events/:churchId', getEvents);
 
 // Get a single event
 router.get('/events/:id', getEvent);
 
 // Create a new event
-router.post('/churches/:churchId/events', createEvent);
+router.post('/events/:churchId', createEvent);
 
 // Update an event
 router.put('/events/:id', updateEvent);
@@ -27,6 +27,6 @@ router.put('/events/:id', updateEvent);
 router.delete('/events/:id', deleteEvent);
 
 // Seed events (for development/testing)
-router.post('/churches/:churchId/events/seed', seedEvents);
+router.post('/events/:churchId/seed', seedEvents);
 
 export default router; 

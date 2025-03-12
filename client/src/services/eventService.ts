@@ -1,128 +1,116 @@
-import axios from 'axios';
+import api from './api';
+import { Event, ApiEventData, FormEvent, formatEventForCalendar } from '../types/event';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
-
-// Set up axios instance with auth header
-const setupAxios = () => {
-  const token = localStorage.getItem('token');
-  return axios.create({
-    baseURL: API_URL,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    }
-  });
-};
-
-// Interface for Event
-export interface Event {
-  _id: string;
-  title: string;
-  date: string;
-  time: string;
-  type: 'service' | 'rehearsal' | 'meeting' | 'youth';
-  status: 'draft' | 'published' | 'completed';
-  description?: string;
-  location?: string;
-  organizer?: string;
-  attendees?: string[];
-  churchId: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
+// API response type
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
 }
 
-// Get all events for a church
-export const getEvents = async (churchId: string, month?: number, year?: number) => {
+/**
+ * Get events for a specific church and month
+ * @param churchId - The ID of the church
+ * @param month - The month (0-11)
+ * @param year - The year
+ * @returns Promise with the events data
+ */
+export const getEvents = async (
+  churchId: string,
+  month: number,
+  year: number
+): Promise<ApiResponse<Event[]>> => {
   try {
-    const api = setupAxios();
-    let url = `/churches/${churchId}/events`;
-    
-    // Add query parameters if month and year are provided
-    if (month !== undefined && year !== undefined) {
-      url += `?month=${month + 1}&year=${year}`;
-    }
-    
-    const response = await api.get(url);
+    const response = await api.get(`/events/${churchId}?month=${month}&year=${year}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching events:', error);
-    throw error;
+    return {
+      success: false,
+      message: 'Failed to fetch events. Please try again later.'
+    };
   }
 };
 
-// Get a single event
-export const getEvent = async (eventId: string) => {
+/**
+ * Seed events for a specific church (for development/demo purposes)
+ * @param churchId - The ID of the church
+ * @returns Promise with the seeded events data
+ */
+export const seedEvents = async (churchId: string): Promise<ApiResponse<Event[]>> => {
   try {
-    const api = setupAxios();
-    const response = await api.get(`/events/${eventId}`);
+    const response = await api.post(`/events/${churchId}/seed`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching event:', error);
-    throw error;
+    console.error('Error seeding events:', error);
+    return {
+      success: false,
+      message: 'Failed to seed events. Please try again later.'
+    };
   }
 };
 
-// Create a new event
-export const createEvent = async (churchId: string, eventData: Omit<Event, '_id' | 'churchId' | 'createdBy' | 'createdAt' | 'updatedAt'>) => {
+/**
+ * Create a new event
+ * @param churchId - The ID of the church
+ * @param eventData - The event data
+ * @returns Promise with the created event data
+ */
+export const createEvent = async (
+  churchId: string,
+  eventData: ApiEventData
+): Promise<ApiResponse<Event>> => {
   try {
-    const api = setupAxios();
-    const response = await api.post(`/churches/${churchId}/events`, eventData);
+    const response = await api.post(`/events/${churchId}`, eventData);
     return response.data;
   } catch (error) {
     console.error('Error creating event:', error);
-    throw error;
+    return {
+      success: false,
+      message: 'Failed to create event. Please try again later.'
+    };
   }
 };
 
-// Update an event
-export const updateEvent = async (eventId: string, eventData: Partial<Event>) => {
+/**
+ * Update an existing event
+ * @param eventId - The ID of the event to update
+ * @param eventData - The updated event data
+ * @returns Promise with the updated event data
+ */
+export const updateEvent = async (
+  eventId: string,
+  eventData: ApiEventData
+): Promise<ApiResponse<Event>> => {
   try {
-    const api = setupAxios();
     const response = await api.put(`/events/${eventId}`, eventData);
     return response.data;
   } catch (error) {
     console.error('Error updating event:', error);
-    throw error;
+    return {
+      success: false,
+      message: 'Failed to update event. Please try again later.'
+    };
   }
 };
 
-// Delete an event
-export const deleteEvent = async (eventId: string) => {
+/**
+ * Delete an event
+ * @param eventId - The ID of the event to delete
+ * @returns Promise with the success status
+ */
+export const deleteEvent = async (eventId: string): Promise<ApiResponse<null>> => {
   try {
-    const api = setupAxios();
     const response = await api.delete(`/events/${eventId}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting event:', error);
-    throw error;
+    return {
+      success: false,
+      message: 'Failed to delete event. Please try again later.'
+    };
   }
 };
 
-// Seed events (for development/testing)
-export const seedEvents = async (churchId: string) => {
-  try {
-    const api = setupAxios();
-    const response = await api.post(`/churches/${churchId}/events/seed`);
-    return response.data;
-  } catch (error) {
-    console.error('Error seeding events:', error);
-    throw error;
-  }
-};
-
-// Format API event to match the format expected by the Calendar component
-export const formatEventForCalendar = (event: Event) => {
-  return {
-    id: event._id,
-    title: event.title,
-    date: new Date(event.date).toISOString(),
-    time: event.time,
-    type: event.type,
-    status: event.status,
-    description: event.description,
-    location: event.location,
-    organizer: event.organizer,
-    attendees: event.attendees
-  };
-}; 
+// Export the formatEventForCalendar function from our types
+export { formatEventForCalendar }; 

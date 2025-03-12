@@ -1,5 +1,6 @@
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
+import { getEventClass, getStatusBadgeClass, getEventTypeName } from '../../utils/eventColors';
 
 // Types for events
 interface Event {
@@ -23,35 +24,7 @@ interface CalendarEventDetailsProps {
 }
 
 const CalendarEventDetails = ({ event, onClose, onEdit, onDelete }: CalendarEventDetailsProps) => {
-  // Get the event type color class
-  const getEventTypeClass = (type: Event['type']) => {
-    switch (type) {
-      case 'service':
-        return 'bg-primary-100 text-primary-800 border-primary-300';
-      case 'rehearsal':
-        return 'bg-secondary-100 text-secondary-800 border-secondary-300';
-      case 'meeting':
-        return 'bg-accent-100 text-accent-800 border-accent-300';
-      case 'youth':
-        return 'bg-purple-100 text-purple-800 border-purple-300';
-      default:
-        return 'bg-neutral-100 text-neutral-800 border-neutral-300';
-    }
-  };
-
-  // Get the status badge class
-  const getStatusBadgeClass = (status?: Event['status']) => {
-    switch (status) {
-      case 'published':
-        return 'bg-green-100 text-green-800 border-green-300';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'draft':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      default:
-        return 'bg-neutral-100 text-neutral-800 border-neutral-300';
-    }
-  };
+  console.log('CalendarEventDetails rendering with event:', event);
 
   // Format the date
   const formattedDate = () => {
@@ -64,13 +37,13 @@ const CalendarEventDetails = ({ event, onClose, onEdit, onDelete }: CalendarEven
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="event-title">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="event-title" onClick={onClose}>
       <div 
         className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-neutral-200">
+        <div className="flex justify-between items-center p-4 border-b border-neutral-200 bg-primary-50">
           <h2 id="event-title" className="text-xl font-semibold text-neutral-900">{event.title}</h2>
           <button 
             className="p-1 rounded-full hover:bg-neutral-100 transition-colors"
@@ -85,8 +58,8 @@ const CalendarEventDetails = ({ event, onClose, onEdit, onDelete }: CalendarEven
         <div className="p-4 space-y-4">
           {/* Type and Status */}
           <div className="flex flex-wrap gap-2">
-            <span className={`px-3 py-1 text-sm rounded-full ${getEventTypeClass(event.type)}`}>
-              {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+            <span className={`px-3 py-1 text-sm rounded-full ${getEventClass(event.type)}`}>
+              {getEventTypeName(event.type)}
             </span>
             {event.status && (
               <span className={`px-3 py-1 text-sm rounded-full ${getStatusBadgeClass(event.status)}`}>
@@ -96,25 +69,25 @@ const CalendarEventDetails = ({ event, onClose, onEdit, onDelete }: CalendarEven
           </div>
           
           {/* Date and Time */}
-          <div className="space-y-2">
+          <div className="space-y-2 bg-neutral-50 p-3 rounded-md">
             <div className="flex items-center">
-              <svg className="h-5 w-5 text-neutral-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 text-primary-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span className="text-neutral-700">{formattedDate()}</span>
+              <span className="text-neutral-700 font-medium">{formattedDate()}</span>
             </div>
             <div className="flex items-center">
-              <svg className="h-5 w-5 text-neutral-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 text-primary-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-neutral-700">{event.time}</span>
+              <span className="text-neutral-700 font-medium">{event.time}</span>
             </div>
           </div>
           
           {/* Location */}
           {event.location && (
-            <div className="flex items-start">
-              <svg className="h-5 w-5 text-neutral-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-start bg-neutral-50 p-3 rounded-md">
+              <svg className="h-5 w-5 text-primary-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -124,8 +97,8 @@ const CalendarEventDetails = ({ event, onClose, onEdit, onDelete }: CalendarEven
           
           {/* Organizer */}
           {event.organizer && (
-            <div className="flex items-center">
-              <svg className="h-5 w-5 text-neutral-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center bg-neutral-50 p-3 rounded-md">
+              <svg className="h-5 w-5 text-primary-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               <span className="text-neutral-700">{event.organizer}</span>
@@ -134,7 +107,7 @@ const CalendarEventDetails = ({ event, onClose, onEdit, onDelete }: CalendarEven
           
           {/* Description */}
           {event.description && (
-            <div className="mt-4">
+            <div className="mt-4 bg-neutral-50 p-3 rounded-md">
               <h3 className="text-sm font-medium text-neutral-500 mb-1">Description</h3>
               <p className="text-neutral-700 whitespace-pre-line">{event.description}</p>
             </div>
@@ -142,11 +115,11 @@ const CalendarEventDetails = ({ event, onClose, onEdit, onDelete }: CalendarEven
           
           {/* Attendees */}
           {event.attendees && event.attendees.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-4 bg-neutral-50 p-3 rounded-md">
               <h3 className="text-sm font-medium text-neutral-500 mb-1">Attendees</h3>
               <div className="flex flex-wrap gap-2">
                 {event.attendees.map((attendee, index) => (
-                  <span key={index} className="px-2 py-1 bg-neutral-100 text-neutral-700 rounded text-sm">
+                  <span key={index} className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-sm">
                     {attendee}
                   </span>
                 ))}
@@ -156,7 +129,7 @@ const CalendarEventDetails = ({ event, onClose, onEdit, onDelete }: CalendarEven
         </div>
         
         {/* Footer */}
-        <div className="p-4 border-t border-neutral-200 flex justify-end space-x-2">
+        <div className="p-4 border-t border-neutral-200 flex justify-end space-x-2 bg-neutral-50">
           {onDelete && (
             <button 
               className="px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 rounded transition-colors"

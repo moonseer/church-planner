@@ -659,31 +659,34 @@ const Calendar = ({
         </div>
       </div>
       
-      {/* Debug output */}
-      <div className="mb-4 p-2 bg-gray-100 text-xs overflow-auto max-h-32 rounded">
-        <p className="font-bold">Debug Info:</p>
-        <p>Current Date: {format(currentDate, 'yyyy-MM-dd')}</p>
-        <p>Events Count: {events.length}</p>
-        <p>Events in Current Month: {events.filter(event => {
-          try {
-            const eventDate = parseISO(event.date);
-            return getMonth(eventDate) === getMonth(currentDate) && 
-                  getYear(eventDate) === getYear(currentDate);
-          } catch (error) {
-            return false;
-          }
-        }).length}</p>
-        <div>
-          <p className="font-bold mt-1">Events:</p>
-          <ul>
-            {events.map((event, index) => (
-              <li key={index} className="truncate">
-                {event.title} - {event.date} - {event.type}
-              </li>
-            ))}
-          </ul>
+      {/* Debug output - collapsed by default */}
+      <details className="mb-4">
+        <summary className="text-sm font-medium text-neutral-700 cursor-pointer">Debug Info</summary>
+        <div className="mt-2 p-2 bg-gray-100 text-xs overflow-auto max-h-32 rounded">
+          <p className="font-bold">Debug Info:</p>
+          <p>Current Date: {format(currentDate, 'yyyy-MM-dd')}</p>
+          <p>Events Count: {events.length}</p>
+          <p>Events in Current Month: {events.filter(event => {
+            try {
+              const eventDate = parseISO(event.date);
+              return getMonth(eventDate) === getMonth(currentDate) && 
+                    getYear(eventDate) === getYear(currentDate);
+            } catch (error) {
+              return false;
+            }
+          }).length}</p>
+          <div>
+            <p className="font-bold mt-1">Events:</p>
+            <ul>
+              {events.map((event, index) => (
+                <li key={index} className="truncate">
+                  {event.title} - {event.date} - {event.type}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </div>
+      </details>
       
       {/* Calendar content with loading state */}
       <div className={`relative transition-opacity duration-150 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>

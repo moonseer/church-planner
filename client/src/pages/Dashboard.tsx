@@ -4,21 +4,11 @@ import SimpleCalendar from '../components/dashboard/SimpleCalendar';
 import CalendarEventDetails from '../components/dashboard/CalendarEventDetails';
 import AnalyticsWidgets from '../components/dashboard/AnalyticsWidgets';
 import { parseISO, getMonth, getYear } from 'date-fns';
-import { getEvents, seedEvents, formatEventForCalendar } from '../services/eventService';
-
-// Define Event type to match Calendar component's requirements
-interface Event {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  type: 'service' | 'rehearsal' | 'meeting' | 'youth';
-  status?: 'draft' | 'published' | 'completed';
-  description?: string;
-  location?: string;
-  organizer?: string;
-  attendees?: string[];
-}
+import { getEvents, seedEvents, formatEventForCalendar, createEvent, updateEvent, deleteEvent } from '../services/eventService';
+import EventFormModal from '../components/events/EventFormModal';
+import CreateEventButton from '../components/events/CreateEventButton';
+import { PlusIcon } from '@heroicons/react/24/outline';
+import { Event, FormEvent, EventType, ApiEventData } from '../types/event';
 
 // Mock data for analytics
 const mockAnalyticsData = {
@@ -309,56 +299,78 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   // State for error
   const [error, setError] = useState<string | null>(null);
+  // State for event form modal
+  const [isEventFormOpen, setIsEventFormOpen] = useState(false);
+  // State for event being edited
+  const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined);
+  // State for form loading
+  const [isFormLoading, setIsFormLoading] = useState(false);
+  // State for form error
+  const [formError, setFormError] = useState<string | undefined>(undefined);
+  // State for selected date for new event
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  
+  // For demo purposes, we'll use a hardcoded church ID
+  // In a real app, you'd get this from user context or auth state
+  const churchId = '65ef1234abcd5678ef901234'; // Replace with a real church ID
   
   // Fetch events from API
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // For demo purposes, we'll use a hardcoded church ID
-        // In a real app, you'd get this from user context or auth state
-        const churchId = '65ef1234abcd5678ef901234'; // Replace with a real church ID
-        
-        // Try to fetch events from API
-        const response = await getEvents(churchId, 2, 2025); // March 2025
-        
-        if (response.success && response.data) {
-          // Format events for the calendar
-          const formattedEvents = response.data.map(formatEventForCalendar);
-          console.log('Fetched events:', formattedEvents);
-          setEvents(formattedEvents);
-        } else {
-          console.log('No events found, using mock data');
-          // If no events, try to seed the database
-          try {
-            const seedResponse = await seedEvents(churchId);
-            if (seedResponse.success && seedResponse.data) {
-              const formattedSeedEvents = seedResponse.data.map(formatEventForCalendar);
-              console.log('Seeded events:', formattedSeedEvents);
-              setEvents(formattedSeedEvents);
-            } else {
-              // Fall back to mock data
-              setEvents(mockEvents);
-            }
-          } catch (seedError) {
-            console.error('Error seeding events:', seedError);
-            // Fall back to mock data
-            setEvents(mockEvents);
+  const fetchEvents = async (month: number = new Date().getMonth(), year: number = new Date().getFullYear()) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log(`Fetching events for month ${month + 1}, year ${year}`);
+      
+      // Try to fetch events from API
+      const response = await getEvents(churchId, month, year);
+      
+      if (response.success && response.data && response.data.length > 0) {
+        // Format events for the calendar
+        const formattedEvents = response.data.map(formatEventForCalendar);
+        console.log('Fetched events:', formattedEvents);
+        setEvents(formattedEvents);
+      } else {
+        console.log('No events found, seeding the database');
+        // If no events, seed the database
+        try {
+          const seedResponse = await seedEvents(churchId);
+          if (seedResponse.success && seedResponse.data) {
+            const formattedSeedEvents = seedResponse.data.map(formatEventForCalendar);
+            console.log('Seeded events:', formattedSeedEvents);
+            
+            // Filter events for the current month/year
+            const filteredEvents = formattedSeedEvents.filter(event => {
+              const eventDate = new Date(event.date);
+              return eventDate.getMonth() === month && eventDate.getFullYear() === year;
+            });
+            
+            setEvents(filteredEvents);
+          } else {
+            console.error('Failed to seed events');
+            setError('Failed to load events. Please try again later.');
+            setEvents([]);
           }
+        } catch (seedError) {
+          console.error('Error seeding events:', seedError);
+          setError('Failed to load events. Please try again later.');
+          setEvents([]);
         }
-      } catch (err) {
-        console.error('Error fetching events:', err);
-        setError('Failed to fetch events. Using mock data instead.');
-        // Fall back to mock data
-        setEvents(mockEvents);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
-    fetchEvents();
+    } catch (err) {
+      console.error('Error fetching events:', err);
+      setError('Failed to load events. Please try again later.');
+      setEvents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial fetch of events
+  useEffect(() => {
+    // Use current month and year instead of hardcoded values
+    const currentDate = new Date();
+    fetchEvents(currentDate.getMonth(), currentDate.getFullYear());
   }, []);
   
   // Function to find an event by ID
@@ -381,10 +393,122 @@ const Dashboard = () => {
     }
   };
   
-  // Effect to log when selectedEvent changes
+  // Add a useEffect to log when selectedEvent changes
   useEffect(() => {
-    console.log("selectedEvent changed:", selectedEvent);
+    if (selectedEvent) {
+      console.log('selectedEvent changed to:', selectedEvent);
+    } else {
+      console.log('selectedEvent is null');
+    }
   }, [selectedEvent]);
+  
+  // Handle opening the event form for creating a new event
+  const handleCreateEvent = () => {
+    setEditingEvent(undefined);
+    setSelectedDate(undefined);
+    setFormError(undefined);
+    setIsEventFormOpen(true);
+  };
+  
+  // Handle opening the event form for creating a new event on a specific date
+  const handleCreateEventForDate = (date: Date) => {
+    setEditingEvent(undefined);
+    setSelectedDate(date);
+    setFormError(undefined);
+    setIsEventFormOpen(true);
+  };
+  
+  // Handle opening the event form for editing an existing event
+  const handleEditEvent = (event?: Event) => {
+    if (!event) return;
+    
+    setEditingEvent(event);
+    setSelectedDate(undefined);
+    setFormError(undefined);
+    setIsEventFormOpen(true);
+    setSelectedEvent(null);
+  };
+  
+  // Handle event form submission
+  const handleEventSubmit = async (eventData: FormEvent) => {
+    setIsFormLoading(true);
+    setFormError(undefined);
+    
+    try {
+      // Convert to API format
+      const apiEventData: ApiEventData = {
+        title: eventData.title,
+        date: eventData.date,
+        time: eventData.time,
+        type: eventData.type,
+        status: eventData.status || 'draft', // Default to draft if status is undefined
+        description: eventData.description,
+        location: eventData.location,
+        organizer: eventData.organizer,
+        attendees: eventData.attendees
+      };
+      
+      if (eventData.id) {
+        // Update existing event
+        const response = await updateEvent(eventData.id, apiEventData);
+        if (response.success && response.data) {
+          // Update events list with type assertion
+          setEvents(prevEvents => 
+            prevEvents.map(event => 
+              event.id === eventData.id ? formatEventForCalendar(response.data as Event) : event
+            )
+          );
+          setIsEventFormOpen(false);
+          
+          // Refresh events to ensure we have the latest data
+          const eventDate = new Date(eventData.date);
+          fetchEvents(eventDate.getMonth(), eventDate.getFullYear());
+        } else {
+          setFormError(response.message || 'Failed to update event');
+        }
+      } else {
+        // Create new event
+        const response = await createEvent(churchId, apiEventData);
+        if (response.success && response.data) {
+          // Add new event to list with type assertion
+          setEvents(prevEvents => [...prevEvents, formatEventForCalendar(response.data as Event)]);
+          setIsEventFormOpen(false);
+          
+          // Refresh events to ensure we have the latest data
+          const eventDate = new Date(eventData.date);
+          fetchEvents(eventDate.getMonth(), eventDate.getFullYear());
+        } else {
+          setFormError(response.message || 'Failed to create event');
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting event:', error);
+      setFormError('An error occurred while saving the event');
+    } finally {
+      setIsFormLoading(false);
+    }
+  };
+  
+  // Handle event deletion
+  const handleDeleteEvent = async (event?: Event) => {
+    if (!event || !event.id) return;
+    
+    if (window.confirm(`Are you sure you want to delete "${event.title}"?`)) {
+      try {
+        const response = await deleteEvent(event.id);
+        if (response.success) {
+          // Remove event from list
+          setEvents(prevEvents => prevEvents.filter(e => e.id !== event.id));
+          setSelectedEvent(null);
+        } else {
+          alert(response.message || 'Failed to delete event');
+        }
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        alert('An error occurred while deleting the event');
+      }
+    }
+  };
   
   // Default widgets configuration
   const defaultWidgets: Widget[] = [
@@ -392,35 +516,9 @@ const Dashboard = () => {
       id: 'calendar',
       type: 'calendar',
       title: 'Calendar',
-      size: 'large',
+      size: 'full',
       component: (
         <div>
-          {/* Debug output for events */}
-          <div className="mb-4 p-2 bg-red-100 text-xs overflow-auto max-h-32 rounded">
-            <p className="font-bold">Dashboard Debug Info:</p>
-            <p>Events Count: {events.length}</p>
-            <p>Events for March 2025: {events.filter(event => {
-              try {
-                const eventDate = parseISO(event.date);
-                return getMonth(eventDate) === 2 && getYear(eventDate) === 2025;
-              } catch (error) {
-                return false;
-              }
-            }).length}</p>
-            {error && <p className="text-red-600 font-bold">Error: {error}</p>}
-            {isLoading && <p className="text-blue-600 font-bold">Loading events...</p>}
-            <div>
-              <p className="font-bold mt-1">First 3 Events:</p>
-              <ul>
-                {events.slice(0, 3).map((event, index) => (
-                  <li key={index} className="truncate">
-                    {event.title} - {new Date(event.date).toLocaleDateString()} - {event.type}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          
           <SimpleCalendar 
             events={events} 
             onEventClick={(event) => {
@@ -428,6 +526,12 @@ const Dashboard = () => {
               setSelectedEvent(event);
             }}
             onDateClick={(date) => console.log('Date clicked:', date)}
+            onCreateEvent={handleCreateEvent}
+            onCreateEventForDate={handleCreateEventForDate}
+            onMonthChange={(month, year) => {
+              console.log(`Month changed to ${month + 1}/${year}`);
+              fetchEvents(month, year);
+            }}
           />
         </div>
       ),
@@ -502,8 +606,17 @@ const Dashboard = () => {
     localStorage.setItem('dashboardWidgets', JSON.stringify(widgetsForStorage));
   };
 
+  // Create type-safe wrapper functions for the event handlers
+  const handleEditEventWrapper = (event: Event) => {
+    handleEditEvent(event);
+  };
+  
+  const handleDeleteEventWrapper = (event: Event) => {
+    handleDeleteEvent(event);
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
       <CustomizableDashboard widgets={widgets} onWidgetsChange={handleWidgetsChange} />
       
       {/* Render the event details popup outside of the widgets */}
@@ -511,13 +624,24 @@ const Dashboard = () => {
         <CalendarEventDetails 
           event={selectedEvent} 
           onClose={() => setSelectedEvent(null)}
-          onEdit={(event) => console.log('Edit event:', event)}
-          onDelete={(event) => {
-            console.log('Delete event:', event);
-            setSelectedEvent(null);
-          }}
+          onEdit={handleEditEventWrapper}
+          onDelete={handleDeleteEventWrapper}
         />
       )}
+      
+      {/* Event form modal */}
+      <EventFormModal
+        isOpen={isEventFormOpen}
+        onClose={() => setIsEventFormOpen(false)}
+        event={editingEvent}
+        onSubmit={handleEventSubmit}
+        isLoading={isFormLoading}
+        error={formError}
+        initialDate={selectedDate}
+      />
+      
+      {/* Only keep one Create Event button */}
+      <CreateEventButton onClick={handleCreateEvent} />
     </div>
   );
 };

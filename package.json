@@ -17,6 +17,7 @@
     "build:client": "cd client && npm run build"
   },
   "devDependencies": {
+    "@types/express-validator": "^2.20.33",
     "concurrently": "^8.2.2"
   }
-} 
+}

@@ -77,34 +77,34 @@ const CustomizableDashboard = ({ widgets, onWidgetsChange }: CustomizableDashboa
   const getGridClass = (size: Widget['size']) => {
     switch (size) {
       case 'small':
-        return 'col-span-1';
+        return 'col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3 xl:col-span-3';
       case 'medium':
-        return 'col-span-1 md:col-span-2';
+        return 'col-span-12 sm:col-span-12 md:col-span-6 lg:col-span-6 xl:col-span-6';
       case 'large':
-        return 'col-span-1 md:col-span-2 lg:col-span-3';
+        return 'col-span-12 md:col-span-8 lg:col-span-9 xl:col-span-9';
       case 'full':
-        return 'col-span-1 md:col-span-2 lg:col-span-4';
+        return 'col-span-12';
       default:
-        return 'col-span-1';
+        return 'col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3';
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-neutral-900">Dashboard</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Dashboard</h1>
         <button
           onClick={() => setIsCustomizing(!isCustomizing)}
-          className="inline-flex items-center px-3 py-2 border border-neutral-300 shadow-sm text-sm leading-4 font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-2 border border-neutral-300 shadow-sm text-xs sm:text-sm leading-4 font-medium rounded-md text-neutral-700 bg-white hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
         >
           {isCustomizing ? (
             <>
-              <XMarkIcon className="-ml-0.5 mr-2 h-4 w-4" aria-hidden="true" />
+              <XMarkIcon className="-ml-0.5 mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" aria-hidden="true" />
               Done
             </>
           ) : (
             <>
-              <CogIcon className="-ml-0.5 mr-2 h-4 w-4" aria-hidden="true" />
+              <CogIcon className="-ml-0.5 mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" aria-hidden="true" />
               Customize
             </>
           )}
@@ -112,28 +112,28 @@ const CustomizableDashboard = ({ widgets, onWidgetsChange }: CustomizableDashboa
       </div>
 
       {isCustomizing && (
-        <div className="bg-primary-50 p-4 rounded-lg border border-primary-200 mb-4">
-          <h2 className="text-lg font-medium text-primary-800 mb-2">Dashboard Customization</h2>
-          <p className="text-sm text-primary-700 mb-4">Drag and drop widgets to reorder them. Toggle visibility or change size using the controls.</p>
+        <div className="bg-primary-50 p-3 sm:p-4 rounded-lg border border-primary-200 mb-4">
+          <h2 className="text-base sm:text-lg font-medium text-primary-800 mb-2">Dashboard Customization</h2>
+          <p className="text-xs sm:text-sm text-primary-700 mb-4">Drag and drop widgets to reorder them. Toggle visibility or change size using the controls.</p>
           
           <div className="space-y-2">
             {items.map((widget) => (
-              <div key={widget.id} className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm">
-                <div className="flex items-center">
-                  <span className="font-medium text-neutral-900">{widget.title}</span>
+              <div key={widget.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-2 sm:p-3 rounded-md shadow-sm">
+                <div className="flex items-center mb-2 sm:mb-0">
+                  <span className="font-medium text-sm sm:text-base text-neutral-900">{widget.title}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <select
                     value={widget.size}
                     onChange={(e) => changeWidgetSize(widget.id, e.target.value as Widget['size'])}
-                    className="block w-24 pl-3 pr-10 py-1 text-base border-neutral-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                    className="block w-20 sm:w-24 pl-2 sm:pl-3 pr-6 sm:pr-10 py-1 text-xs sm:text-sm border-neutral-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 rounded-md"
                   >
                     <option value="small">Small</option>
                     <option value="medium">Medium</option>
                     <option value="large">Large</option>
                     <option value="full">Full Width</option>
                   </select>
-                  <div className="relative inline-block w-10 mr-2 align-middle select-none">
+                  <div className="relative inline-block w-8 sm:w-10 mr-1 sm:mr-2 align-middle select-none">
                     <input
                       type="checkbox"
                       id={`toggle-${widget.id}`}
@@ -143,13 +143,13 @@ const CustomizableDashboard = ({ widgets, onWidgetsChange }: CustomizableDashboa
                     />
                     <label
                       htmlFor={`toggle-${widget.id}`}
-                      className={`block overflow-hidden h-6 rounded-full bg-neutral-200 cursor-pointer ${
+                      className={`block overflow-hidden h-5 sm:h-6 rounded-full bg-neutral-200 cursor-pointer ${
                         widget.isVisible ? 'bg-primary-500' : 'bg-neutral-200'
                       }`}
                     >
                       <span
-                        className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform ${
-                          widget.isVisible ? 'translate-x-4' : 'translate-x-0'
+                        className={`block h-5 sm:h-6 w-5 sm:w-6 rounded-full bg-white shadow transform transition-transform ${
+                          widget.isVisible ? 'translate-x-3 sm:translate-x-4' : 'translate-x-0'
                         }`}
                       ></span>
                     </label>
@@ -166,7 +166,7 @@ const CustomizableDashboard = ({ widgets, onWidgetsChange }: CustomizableDashboa
         collisionDetection={closestCenter} 
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-12 gap-2 sm:gap-4">
           <SortableContext items={items.map(item => item.id)}>
             {items
               .filter(widget => widget.isVisible)
@@ -216,10 +216,10 @@ const SortableWidget = ({ widget, gridClass, isCustomizing }: SortableWidgetProp
       {...listeners}
     >
       <div className="bg-white rounded-lg shadow overflow-hidden h-full">
-        <div className="p-4 border-b border-neutral-200">
-          <h2 className="text-lg font-medium text-neutral-900">{widget.title}</h2>
+        <div className="p-2 sm:p-4 border-b border-neutral-200">
+          <h2 className="text-base sm:text-lg font-medium text-neutral-900">{widget.title}</h2>
         </div>
-        <div className="p-4">
+        <div className="p-2 sm:p-4 overflow-auto">
           {widget.component}
         </div>
       </div>

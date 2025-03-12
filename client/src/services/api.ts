@@ -4,7 +4,7 @@ import axios from 'axios';
 // For local development outside Docker, use localhost
 // We'll use a direct URL that works in both environments
 // The Docker Compose file sets VITE_API_URL to http://server:5000/api
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:8080/api';
 
 console.log('API URL:', API_URL); // Add logging to debug
 
