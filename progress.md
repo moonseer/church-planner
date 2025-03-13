@@ -70,6 +70,13 @@ We've made significant progress on the Church Planner application:
    - [x] Services functionality: Implemented database storage for services with proper API integration
    - [x] Calendar display issue: Fixed calendar to properly show both morning and evening services
 
+5.1. **What's Going Wrong (Current Issues)**:
+   - [ ] 1. TypeScript compilation errors in `eventController.ts` regarding the `EventType` import and issues with `req.user` and `churchId`
+   - [ ] 2. Middleware configuration issue in `eventTypeRoutes.ts` with error "Router.use() requires a middleware function"
+   - [ ] 3. Event types not loading properly, suggesting an issue with the event types endpoint
+   - [ ] 4. All queries for February 2025 return "Events found: 0," which may indicate a problem if events should exist
+   - [ ] 5. Excessive authentication requests to `/api/auth/me` suggesting inefficient client-side polling
+
 6. **Next Steps**:
    - [x] Fix calendar event display issue
    - [x] Complete the registration functionality: Updated RegisterForm to include firstName and lastName fields
@@ -225,7 +232,12 @@ We've made significant progress on the Church Planner application:
 - [x] Create color-coding system for different event types
 - [ ] Add custom view preferences saving
 - [ ] Implement search functionality within calendar events
-- [ ] Create natural language event creation ("Service at 10am Sunday")
+- [x] Implement custom event types management
+  - [x] Create database schema for custom event types
+  - [x] Build UI for creating and managing custom event types
+  - [x] Implement color selection for custom event types
+  - [x] Add event type filtering for custom types
+  - [x] Update event creation form to support custom types
 
 ### Calendar Interactions
 - [x] Implement smooth date selection with visual feedback

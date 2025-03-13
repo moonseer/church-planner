@@ -8,7 +8,8 @@ import {
   MusicalNoteIcon,
   ChatBubbleLeftRightIcon,
   ChartBarIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  TagIcon
 } from '@heroicons/react/24/outline'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -27,8 +28,16 @@ const navigation = [
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
 ]
 
+// Admin settings submenu
+const adminSettings = [
+  { name: 'Event Types', href: '/event-types', icon: TagIcon },
+]
+
 const Sidebar = ({ open, onClose }: SidebarProps) => {
   const location = useLocation()
+
+  // Check if the current path is a settings page
+  const isSettingsPage = location.pathname === '/settings' || adminSettings.some(item => location.pathname === item.href);
 
   return (
     <>
@@ -91,14 +100,14 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                       key={item.name}
                       to={item.href}
                       className={`${
-                        location.pathname === item.href
+                        (item.name === 'Settings' && isSettingsPage) || location.pathname === item.href
                           ? 'bg-primary-50 text-primary-600'
                           : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
                       } group flex items-center px-2 py-2 text-base font-medium rounded-md`}
                     >
                       <item.icon
                         className={`${
-                          location.pathname === item.href
+                          (item.name === 'Settings' && isSettingsPage) || location.pathname === item.href
                             ? 'text-primary-500'
                             : 'text-neutral-400 group-hover:text-neutral-500'
                         } mr-4 flex-shrink-0 h-6 w-6`}
@@ -107,6 +116,33 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                       {item.name}
                     </Link>
                   ))}
+                  
+                  {/* Admin settings submenu */}
+                  {isSettingsPage && (
+                    <div className="pl-10 pt-2 pb-1">
+                      {adminSettings.map((item) => (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          className={`${
+                            location.pathname === item.href
+                              ? 'bg-primary-50 text-primary-600'
+                              : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                          } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
+                        >
+                          <item.icon
+                            className={`${
+                              location.pathname === item.href
+                                ? 'text-primary-500'
+                                : 'text-neutral-400 group-hover:text-neutral-500'
+                            } mr-3 flex-shrink-0 h-5 w-5`}
+                            aria-hidden="true"
+                          />
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </nav>
               </div>
             </div>
@@ -133,14 +169,14 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                   key={item.name}
                   to={item.href}
                   className={`${
-                    location.pathname === item.href
+                    (item.name === 'Settings' && isSettingsPage) || location.pathname === item.href
                       ? 'bg-primary-50 text-primary-600'
                       : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
                   } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
                 >
                   <item.icon
                     className={`${
-                      location.pathname === item.href
+                      (item.name === 'Settings' && isSettingsPage) || location.pathname === item.href
                         ? 'text-primary-500'
                         : 'text-neutral-400 group-hover:text-neutral-500'
                     } mr-3 flex-shrink-0 h-6 w-6`}
@@ -149,6 +185,33 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                   {item.name}
                 </Link>
               ))}
+              
+              {/* Admin settings submenu */}
+              {isSettingsPage && (
+                <div className="pl-10 pt-2 pb-1">
+                  {adminSettings.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={`${
+                        location.pathname === item.href
+                          ? 'bg-primary-50 text-primary-600'
+                          : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                      } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
+                    >
+                      <item.icon
+                        className={`${
+                          location.pathname === item.href
+                            ? 'text-primary-500'
+                            : 'text-neutral-400 group-hover:text-neutral-500'
+                        } mr-3 flex-shrink-0 h-5 w-5`}
+                        aria-hidden="true"
+                      />
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </nav>
           </div>
         </div>

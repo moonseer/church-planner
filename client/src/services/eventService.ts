@@ -34,7 +34,7 @@ export const getEvents = async (
     
     console.log(`Fetching events for month ${month + 1}, year ${year}`);
     
-    const response = await api.get(`/events/${churchId}?month=${month}&year=${year}`);
+    const response = await api.get(`/api/events/${churchId}?month=${month + 1}&year=${year}`);
     
     // Cache the response for 30 minutes
     setCacheItem(cacheKey, response.data, 30);
@@ -56,7 +56,7 @@ export const getEvents = async (
  */
 export const seedEvents = async (churchId: string): Promise<ApiResponse<Event[]>> => {
   try {
-    const response = await api.post(`/events/${churchId}/seed`);
+    const response = await api.post(`/api/events/${churchId}/seed`);
     
     // Clear all event caches for this church since we've seeded new data
     // This is a simple approach - in a production app, we might want to be more selective
@@ -83,7 +83,7 @@ export const createEvent = async (
   eventData: ApiEventData
 ): Promise<ApiResponse<Event>> => {
   try {
-    const response = await api.post(`/events/${churchId}`, eventData);
+    const response = await api.post(`/api/events/${churchId}`, eventData);
     
     // Invalidate cache for the month/year of the new event
     if (response.data.success && response.data.data) {
@@ -115,7 +115,7 @@ export const updateEvent = async (
   eventData: ApiEventData
 ): Promise<ApiResponse<Event>> => {
   try {
-    const response = await api.put(`/events/${eventId}`, eventData);
+    const response = await api.put(`/api/events/${eventId}`, eventData);
     
     // Invalidate cache for the month/year of the updated event
     if (response.data.success && response.data.data) {
@@ -148,10 +148,10 @@ export const updateEvent = async (
 export const deleteEvent = async (eventId: string): Promise<ApiResponse<null>> => {
   try {
     // First, get the event to know which cache to invalidate
-    const eventResponse = await api.get(`/events/${eventId}`);
+    const eventResponse = await api.get(`/api/events/${eventId}`);
     const event = eventResponse.data.data;
     
-    const response = await api.delete(`/events/${eventId}`);
+    const response = await api.delete(`/api/events/${eventId}`);
     
     // Invalidate cache for the month/year of the deleted event
     if (response.data.success && event) {

@@ -15,7 +15,7 @@ import {
   getYear
 } from 'date-fns';
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, FunnelIcon } from '@heroicons/react/24/outline';
-import { Event, EventType } from '../../types/event';
+import { Event, LegacyEventType } from '../../types/event';
 import { getEventClass, getEventBgColor, getEventTextColor, getEventTypeName } from '../../utils/eventColors';
 
 // Props for the Calendar component
@@ -40,11 +40,11 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // State for event type filters
-  const [activeFilters, setActiveFilters] = useState<EventType[]>([]);
+  const [activeFilters, setActiveFilters] = useState<LegacyEventType[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   
   // All available event types
-  const eventTypes: EventType[] = ['service', 'rehearsal', 'meeting', 'youth'];
+  const eventTypes: LegacyEventType[] = ['service', 'rehearsal', 'meeting', 'youth'];
   
   // Navigation functions
   const previousMonth = () => {
@@ -69,7 +69,7 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
   };
   
   // Toggle filter for an event type
-  const toggleFilter = (type: EventType) => {
+  const toggleFilter = (type: LegacyEventType) => {
     setActiveFilters(prev => {
       if (prev.includes(type)) {
         return prev.filter(t => t !== type);
@@ -108,7 +108,9 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
     
     // Apply type filters if any are active
     if (activeFilters.length > 0) {
-      filteredEvents = filteredEvents.filter(event => activeFilters.includes(event.type));
+      filteredEvents = filteredEvents.filter(event => 
+        event.type !== undefined && activeFilters.includes(event.type)
+      );
     }
     
     // Sort events by time
@@ -195,7 +197,7 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
                     key={event.id} 
                     className={`
                       text-xs p-1 rounded border truncate cursor-pointer
-                      ${getEventClass(event.type)}
+                      ${getEventClass(event.eventType, event.type)}
                       hover:opacity-80 font-bold border-2
                     `}
                     onClick={(e) => {
@@ -296,11 +298,11 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
                 onClick={() => toggleFilter(type)}
                 className={`px-2 py-1 text-xs rounded-full border ${
                   activeFilters.includes(type)
-                    ? getEventClass(type)
+                    ? getEventClass(undefined, type)
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                {getEventTypeName(type)}
+                {getEventTypeName(undefined, type)}
               </button>
             ))}
           </div>

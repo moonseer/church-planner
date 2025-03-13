@@ -3,11 +3,21 @@
  * These types are used across the application to ensure consistency
  */
 
-// Event type options
-export type EventType = 'service' | 'rehearsal' | 'meeting' | 'youth';
+// Legacy event type options (kept for backward compatibility)
+export type LegacyEventType = 'service' | 'rehearsal' | 'meeting' | 'youth';
 
 // Event status options
 export type EventStatus = 'draft' | 'published' | 'completed';
+
+// Event Type definition
+export interface EventTypeDefinition {
+  id: string;
+  name: string;
+  code: string;
+  color: string;
+  icon?: string;
+  isDefault?: boolean;
+}
 
 // Base Event interface
 export interface Event {
@@ -15,7 +25,11 @@ export interface Event {
   title: string;
   date: string; // ISO string format
   time: string; // Display format (e.g., "9:00 AM - 11:00 AM")
-  type: EventType;
+  // New fields for custom event types
+  eventTypeId: string;
+  eventType?: EventTypeDefinition;
+  // Legacy field kept for backward compatibility
+  type?: LegacyEventType;
   status?: EventStatus;
   description?: string;
   location?: string;
@@ -33,7 +47,10 @@ export interface ApiEventData {
   title: string;
   date: string;
   time: string;
-  type: EventType;
+  // Updated to use eventTypeId instead of type
+  eventTypeId: string;
+  // Legacy field kept for backward compatibility
+  type?: LegacyEventType;
   status: EventStatus;
   description?: string;
   location?: string;
@@ -47,7 +64,11 @@ export interface CalendarEventDisplay {
   title: string;
   date: string;
   time: string;
-  type: EventType;
+  // Updated to use eventTypeId and eventType
+  eventTypeId: string;
+  eventType?: EventTypeDefinition;
+  // Legacy field kept for backward compatibility
+  type?: LegacyEventType;
   status?: EventStatus;
   className?: string;
   isEditable?: boolean;
@@ -61,9 +82,27 @@ export const formatEventForCalendar = (event: Event): Event => {
     date: event.date,
     // Ensure time is in display format
     time: event.time || '',
-    // Ensure type is valid
-    type: event.type as EventType,
+    // Include both new and legacy type fields
+    eventTypeId: event.eventTypeId,
+    eventType: event.eventType,
+    type: event.type,
     // Ensure status is valid
     status: (event.status as EventStatus) || 'draft'
   };
-}; 
+};
+
+// API response for event types
+export interface EventTypeResponse {
+  success: boolean;
+  count?: number;
+  data: EventTypeDefinition | EventTypeDefinition[];
+  message?: string;
+}
+
+// Form data for creating/updating event types
+export interface EventTypeFormData {
+  name: string;
+  code: string;
+  color: string;
+  icon?: string;
+} 

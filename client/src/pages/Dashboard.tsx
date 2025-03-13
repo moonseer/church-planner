@@ -8,7 +8,8 @@ import { getEvents, seedEvents, formatEventForCalendar, createEvent, updateEvent
 import EventFormModal from '../components/events/EventFormModal';
 import CreateEventButton from '../components/events/CreateEventButton';
 import { PlusIcon } from '@heroicons/react/24/outline';
-import { Event, FormEvent, EventType, ApiEventData } from '../types/event';
+import { Event, FormEvent, ApiEventData, LegacyEventType, EventStatus } from '../types/event';
+import { useAuth } from '../hooks/useAuth';
 
 // Mock data for analytics
 const mockAnalyticsData = {
@@ -69,6 +70,7 @@ const mockEvents: Event[] = [
     title: 'Sunday Service',
     date: new Date(2025, 2, 2, 9, 0).toISOString(), // March 2, 2025
     time: '9:00 AM - 11:00 AM',
+    eventTypeId: 'service-type-id', // Default event type ID
     type: 'service',
     status: 'published',
     description: 'Regular Sunday worship service with communion.',
@@ -81,6 +83,7 @@ const mockEvents: Event[] = [
     title: 'Worship Practice',
     date: new Date(2025, 2, 4, 18, 0).toISOString(), // March 4, 2025
     time: '6:00 PM - 8:00 PM',
+    eventTypeId: 'rehearsal-type-id', // Default event type ID
     type: 'rehearsal',
     status: 'draft',
     description: 'Weekly worship team rehearsal for upcoming Sunday service.',
@@ -93,6 +96,7 @@ const mockEvents: Event[] = [
     title: 'Youth Group',
     date: new Date(2025, 2, 7, 19, 0).toISOString(), // March 7, 2025
     time: '7:00 PM - 9:00 PM',
+    eventTypeId: 'youth-type-id', // Default event type ID
     type: 'youth',
     status: 'draft',
     description: 'Weekly youth group meeting with games, worship, and Bible study.',
@@ -105,6 +109,7 @@ const mockEvents: Event[] = [
     title: 'Leadership Meeting',
     date: new Date(2025, 2, 15, 12, 0).toISOString(), // March 15, 2025
     time: '12:00 PM - 1:30 PM',
+    eventTypeId: 'meeting-type-id', // Default event type ID
     type: 'meeting',
     status: 'published',
     description: 'Monthly leadership team meeting to discuss church vision and upcoming events.',
@@ -118,6 +123,7 @@ const mockEvents: Event[] = [
     title: 'Sunday Morning Service',
     date: new Date(2025, 2, 9, 9, 0).toISOString(), // March 9, 2025
     time: '9:00 AM - 11:00 AM',
+    eventTypeId: 'service-type-id', // Default event type ID
     type: 'service',
     status: 'draft',
     description: 'Regular Sunday morning worship service.',
@@ -130,6 +136,7 @@ const mockEvents: Event[] = [
     title: 'Sunday Morning Service',
     date: new Date(2025, 2, 16, 9, 0).toISOString(), // March 16, 2025
     time: '9:00 AM - 11:00 AM',
+    eventTypeId: 'service-type-id', // Default event type ID
     type: 'service',
     status: 'published',
     description: 'Regular Sunday morning worship service.',
@@ -142,6 +149,7 @@ const mockEvents: Event[] = [
     title: 'Sunday Morning Service',
     date: new Date(2025, 2, 23, 9, 0).toISOString(), // March 23, 2025
     time: '9:00 AM - 11:00 AM',
+    eventTypeId: 'service-type-id', // Default event type ID
     type: 'service',
     status: 'draft',
     description: 'Regular Sunday morning worship service.',
@@ -154,6 +162,7 @@ const mockEvents: Event[] = [
     title: 'Sunday Morning Service',
     date: new Date(2025, 2, 30, 9, 0).toISOString(), // March 30, 2025
     time: '9:00 AM - 11:00 AM',
+    eventTypeId: 'service-type-id', // Default event type ID
     type: 'service',
     status: 'draft',
     description: 'Regular Sunday morning worship service.',
@@ -310,9 +319,11 @@ const Dashboard = () => {
   // State for selected date for new event
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
-  // For demo purposes, we'll use a hardcoded church ID
-  // In a real app, you'd get this from user context or auth state
-  const churchId = '65ef1234abcd5678ef901234'; // Replace with a real church ID
+  // Get user data from auth hook
+  const { userData } = useAuth();
+  
+  // Use the user's ID as the churchId
+  const churchId = userData?.id || '';
   
   // Fetch events from API
   const fetchEvents = async (month: number = new Date().getMonth(), year: number = new Date().getFullYear()) => {
@@ -471,6 +482,7 @@ const Dashboard = () => {
         title: eventData.title,
         date: eventData.date,
         time: eventData.time,
+        eventTypeId: eventData.eventTypeId,
         type: eventData.type,
         status: eventData.status || 'draft', // Default to draft if status is undefined
         description: eventData.description,

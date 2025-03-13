@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import Event, { IEvent, EventType, EventStatus } from '../models/Event';
+import Event, { IEvent, LegacyEventType, EventStatus } from '../models/Event';
+import EventType from '../models/EventType';
 import mongoose from 'mongoose';
 import { ApiResponse, createSuccessResponse, createErrorResponse } from '../types/apiResponse';
 
@@ -28,10 +29,11 @@ export const getEvents = async (req: Request, res: Response) => {
       const yearNum = parseInt(year as string);
       
       // Create start date (first day of month)
+      // Client sends month as 1-12, so we need to subtract 1 for JavaScript Date (0-11)
       const startDate = new Date(yearNum, monthNum - 1, 1, 0, 0, 0);
       
       // Create end date (last day of month)
-      // Get the first day of the next month, then subtract 1 millisecond
+      // Get the last day of the current month
       const endDate = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
       
       query.date = { $gte: startDate, $lte: endDate };
@@ -53,7 +55,10 @@ export const getEvents = async (req: Request, res: Response) => {
     
     console.log('MongoDB query:', JSON.stringify(query));
     
-    const events = await Event.find(query).sort({ date: 1 });
+    // Populate the eventTypeId field with event type information
+    const events = await Event.find(query)
+      .populate('eventTypeId', 'name code color icon')
+      .sort({ date: 1 });
     
     console.log('Events found:', events.length);
     
@@ -73,7 +78,7 @@ export const getEvent = async (req: Request, res: Response) => {
       return res.status(400).json(createErrorResponse('Invalid event ID', null));
     }
     
-    const event = await Event.findById(id);
+    const event = await Event.findById(id).populate('eventTypeId', 'name code color icon');
     
     if (!event) {
       return res.status(404).json(createErrorResponse('Event not found', null));
@@ -207,13 +212,40 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
     
+    // Get event types for this church
+    const eventTypes = await EventType.find({ churchId: churchObjectId });
+    
+    if (eventTypes.length === 0) {
+      return res.status(400).json(createErrorResponse('No event types found. Please create event types first.', []));
+    }
+    
+    // Create a map of legacy types to event type IDs
+    const typeMap: Record<string, mongoose.Types.ObjectId> = {};
+    
+    // Map legacy types to event type IDs based on code
+    eventTypes.forEach(eventType => {
+      if (eventType.code === 'service') {
+        typeMap['service'] = eventType._id;
+      } else if (eventType.code === 'rehearsal') {
+        typeMap['rehearsal'] = eventType._id;
+      } else if (eventType.code === 'meeting') {
+        typeMap['meeting'] = eventType._id;
+      } else if (eventType.code === 'youth') {
+        typeMap['youth'] = eventType._id;
+      }
+    });
+    
+    // If we don't have all the required event types, use the first one as default
+    const defaultEventTypeId = eventTypes[0]._id;
+    
     // Sample events for March 2025
     const march2025Events = [
       {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 2, 9, 0), // March 2, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType, // Keep legacy type for backward compatibility
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service with communion.',
         location: 'Main Sanctuary',
@@ -226,7 +258,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Evening Service',
         date: new Date(2025, 2, 2, 18, 0), // March 2, 2025 Evening
         time: '6:00 PM - 7:30 PM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Evening worship service.',
         location: 'Main Sanctuary',
@@ -239,7 +272,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Worship Practice',
         date: new Date(2025, 2, 4, 18, 0), // March 4, 2025
         time: '6:00 PM - 8:00 PM',
-        type: 'rehearsal' as EventType,
+        eventTypeId: typeMap['rehearsal'] || defaultEventTypeId,
+        type: 'rehearsal' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Weekly worship team practice for upcoming Sunday service.',
         location: 'Worship Room',
@@ -252,7 +286,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Youth Group',
         date: new Date(2025, 2, 7, 19, 0), // March 7, 2025
         time: '7:00 PM - 9:00 PM',
-        type: 'youth' as EventType,
+        eventTypeId: typeMap['youth'] || defaultEventTypeId,
+        type: 'youth' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Weekly youth group meeting with games, worship, and Bible study.',
         location: 'Youth Room',
@@ -265,7 +300,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 9, 9, 0), // March 9, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
@@ -278,7 +314,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Evening Service',
         date: new Date(2025, 2, 9, 18, 0), // March 9, 2025 Evening
         time: '6:00 PM - 7:30 PM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Evening worship service.',
         location: 'Main Sanctuary',
@@ -291,7 +328,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Leadership Meeting',
         date: new Date(2025, 2, 15, 12, 0), // March 15, 2025
         time: '12:00 PM - 2:00 PM',
-        type: 'meeting' as EventType,
+        eventTypeId: typeMap['meeting'] || defaultEventTypeId,
+        type: 'meeting' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Monthly leadership team meeting to discuss church vision and upcoming events.',
         location: 'Conference Room',
@@ -304,7 +342,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 16, 9, 0), // March 16, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
@@ -317,7 +356,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Evening Service',
         date: new Date(2025, 2, 16, 18, 0), // March 16, 2025 Evening
         time: '6:00 PM - 7:30 PM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Evening worship service.',
         location: 'Main Sanctuary',
@@ -330,7 +370,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 23, 9, 0), // March 23, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
@@ -343,7 +384,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Evening Service',
         date: new Date(2025, 2, 23, 18, 0), // March 23, 2025 Evening
         time: '6:00 PM - 7:30 PM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Evening worship service.',
         location: 'Main Sanctuary',
@@ -356,7 +398,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Morning Service',
         date: new Date(2025, 2, 30, 9, 0), // March 30, 2025
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
@@ -369,7 +412,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Evening Service',
         date: new Date(2025, 2, 30, 18, 0), // March 30, 2025 Evening
         time: '6:00 PM - 7:30 PM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Evening worship service.',
         location: 'Main Sanctuary',
@@ -386,7 +430,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Service',
         date: new Date(currentYear, currentMonth, 1, 9, 0), // First Sunday of current month
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service with communion.',
         location: 'Main Sanctuary',
@@ -399,7 +444,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Worship Practice',
         date: new Date(currentYear, currentMonth, 3, 18, 0), // Wednesday of first week
         time: '6:00 PM - 8:00 PM',
-        type: 'rehearsal' as EventType,
+        eventTypeId: typeMap['rehearsal'] || defaultEventTypeId,
+        type: 'rehearsal' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Weekly worship team practice for upcoming Sunday service.',
         location: 'Worship Room',
@@ -412,7 +458,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Youth Group',
         date: new Date(currentYear, currentMonth, 5, 19, 0), // Friday of first week
         time: '7:00 PM - 9:00 PM',
-        type: 'youth' as EventType,
+        eventTypeId: typeMap['youth'] || defaultEventTypeId,
+        type: 'youth' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Weekly youth group meeting with games, worship, and Bible study.',
         location: 'Youth Room',
@@ -425,7 +472,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Service',
         date: new Date(currentYear, currentMonth, 8, 9, 0), // Second Sunday
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
@@ -438,7 +486,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Leadership Meeting',
         date: new Date(currentYear, currentMonth, 14, 12, 0), // Second Saturday
         time: '12:00 PM - 2:00 PM',
-        type: 'meeting' as EventType,
+        eventTypeId: typeMap['meeting'] || defaultEventTypeId,
+        type: 'meeting' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Monthly leadership team meeting to discuss church vision and upcoming events.',
         location: 'Conference Room',
@@ -451,7 +500,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Service',
         date: new Date(currentYear, currentMonth, 15, 9, 0), // Third Sunday
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
@@ -464,7 +514,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Service',
         date: new Date(currentYear, currentMonth, 22, 9, 0), // Fourth Sunday
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',
@@ -477,7 +528,8 @@ export const seedEvents = async (req: AuthRequest, res: Response) => {
         title: 'Sunday Service',
         date: new Date(currentYear, currentMonth, 29, 9, 0), // Fifth Sunday (if exists)
         time: '9:00 AM - 11:00 AM',
-        type: 'service' as EventType,
+        eventTypeId: typeMap['service'] || defaultEventTypeId,
+        type: 'service' as LegacyEventType,
         status: 'published' as EventStatus,
         description: 'Regular Sunday worship service.',
         location: 'Main Sanctuary',

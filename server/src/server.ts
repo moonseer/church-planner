@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import User, { IUser } from './models/User';
 import eventRoutes from './routes/eventRoutes';
 import serviceRoutes from './routes/serviceRoutes';
+import eventTypeRoutes from './routes/eventTypeRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -49,33 +50,45 @@ app.use(express.json());
 // Auth middleware
 const protect = async (req: Request, res: Response, next: Function) => {
   try {
+    console.log('Auth middleware called for URL:', req.url);
+    console.log('Auth headers:', req.headers.authorization);
+    
     let token: string | undefined;
 
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
+      console.log('Token extracted from Authorization header:', token.substring(0, 10) + '...');
     }
 
     if (!token) {
+      console.log('No token found in request');
       res.status(401).json({ success: false, message: 'Not authorized to access this route' });
       return;
     }
 
     try {
       // Verify token
+      console.log('Verifying token...');
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+      console.log('Token decoded successfully:', decoded);
 
       // Find user by id
+      console.log('Finding user with ID:', decoded.id);
       const user = await User.findById(decoded.id);
       
       if (!user) {
+        console.log('User not found with ID:', decoded.id);
         res.status(401).json({ success: false, message: 'User not found' });
         return;
       }
 
+      console.log('User found:', user._id.toString());
+      
       // Attach user to request
       (req as any).user = user;
       next();
     } catch (error) {
+      console.error('Error in token verification:', error);
       res.status(401).json({ success: false, message: 'Not authorized to access this route' });
       return;
     }
@@ -87,7 +100,7 @@ const protect = async (req: Request, res: Response, next: Function) => {
 
 // Routes
 // Health check route
-app.get('/health', (req: Request, res: Response) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
 });
 
@@ -263,6 +276,23 @@ app.use('/api', protect, eventRoutes);
 
 // Use service routes
 app.use('/api', protect, serviceRoutes);
+
+// Use event type routes
+app.use('/api/event-types', protect, (req: any, res, next) => {
+  console.log('Event type routes middleware called');
+  console.log('Request user:', req.user ? req.user._id : 'No user');
+  console.log('Request params before:', req.params);
+  
+  // Extract churchId from user if available
+  if (req.user) {
+    // Use the user's _id as churchId since churchId doesn't exist on IUser
+    req.params.churchId = req.user._id;
+    console.log('Set churchId param to user._id:', req.user._id);
+  }
+  
+  console.log('Request params after:', req.params);
+  next();
+}, eventTypeRoutes);
 
 // Start server
 app.listen(PORT, () => {

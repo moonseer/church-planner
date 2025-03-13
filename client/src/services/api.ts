@@ -2,9 +2,9 @@ import axios from 'axios';
 
 // In Docker, containers can communicate using the service name as hostname
 // For local development outside Docker, use localhost
-// We'll use a direct URL that works in both environments
-// The Docker Compose file sets VITE_API_URL to http://server:5000/api
-const API_URL = 'http://localhost:8080/api';
+// We'll use environment variables to handle different environments
+// @ts-ignore - Vite specific environment variables
+const API_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8080';
 
 console.log('API URL:', API_URL); // Add logging to debug
 
@@ -16,6 +16,8 @@ const api = axios.create({
   },
   // Add timeout to prevent hanging requests
   timeout: 10000,
+  // Important for containerized apps - allow credentials
+  withCredentials: true
 });
 
 // Add request interceptor to add auth token to requests
@@ -24,8 +26,18 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Token found in localStorage, adding to request headers');
+    } else {
+      console.warn('No token found in localStorage');
     }
-    console.log('API Request:', config.method, config.url); // Add logging to debug
+    console.log('API Request:', {
+      method: config.method,
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      headers: config.headers,
+      data: config.data
+    });
     return config;
   },
   (error) => {
@@ -37,17 +49,35 @@ api.interceptors.request.use(
 // Add response interceptor for better error handling
 api.interceptors.response.use(
   (response) => {
-    console.log('API Response:', response.status, response.config.url);
+    console.log('API Response Success:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    });
     return response;
   },
   (error) => {
-    console.error('API Response Error:', error.message);
+    console.error('API Response Error:', {
+      message: error.message,
+      code: error.code,
+      config: error.config ? {
+        url: error.config.url,
+        method: error.config.method,
+        baseURL: error.config.baseURL
+      } : 'No config'
+    });
+    
     if (error.response) {
-      console.error('Error Status:', error.response.status);
-      console.error('Error Data:', error.response.data);
+      console.error('Error Response Details:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers
+      });
     } else if (error.request) {
-      console.error('No response received');
+      console.error('No response received. Request details:', error.request);
     }
+    
     return Promise.reject(error);
   }
 );
@@ -56,7 +86,7 @@ api.interceptors.response.use(
 export const authAPI = {
   register: async (name: string, email: string, password: string, churchName: string) => {
     try {
-      const response = await api.post('/auth/register', { name, email, password, churchName });
+      const response = await api.post('/api/auth/register', { name, email, password, churchName });
       return response.data;
     } catch (error) {
       console.error('Registration error:', error);
@@ -66,7 +96,7 @@ export const authAPI = {
   
   login: async (email: string, password: string) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/api/auth/login', { email, password });
       return response.data;
     } catch (error) {
       console.error('Login error:', error);
@@ -76,7 +106,7 @@ export const authAPI = {
   
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/auth/me');
+      const response = await api.get('/api/auth/me');
       return response.data;
     } catch (error) {
       console.error('Get current user error:', error);
@@ -86,7 +116,7 @@ export const authAPI = {
   
   forgotPassword: async (email: string) => {
     try {
-      const response = await api.post('/auth/forgot-password', { email });
+      const response = await api.post('/api/auth/forgot-password', { email });
       return response.data;
     } catch (error) {
       console.error('Forgot password error:', error);
@@ -96,13 +126,24 @@ export const authAPI = {
   
   resetPassword: async (token: string, password: string) => {
     try {
-      const response = await api.post('/auth/reset-password', { token, password });
+      const response = await api.post('/api/auth/reset-password', { token, password });
       return response.data;
     } catch (error) {
       console.error('Reset password error:', error);
       throw error;
     }
   },
+};
+
+// Health check API call
+export const healthCheck = async () => {
+  try {
+    const response = await api.get('/api/health');
+    return response.data;
+  } catch (error) {
+    console.error('Health check error:', error);
+    throw error;
+  }
 };
 
 export default api; 

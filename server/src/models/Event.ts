@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-// Event type options
-export type EventType = 'service' | 'rehearsal' | 'meeting' | 'youth';
+// Legacy event type options (kept for backward compatibility during migration)
+export type LegacyEventType = 'service' | 'rehearsal' | 'meeting' | 'youth';
 
 // Event status options
 export type EventStatus = 'draft' | 'published' | 'completed';
@@ -10,7 +10,10 @@ export interface IEvent extends Document {
   title: string;
   date: Date;
   time: string;
-  type: EventType;
+  // New field for referencing EventType model
+  eventTypeId: mongoose.Types.ObjectId;
+  // Legacy field kept for backward compatibility
+  type?: LegacyEventType;
   status: EventStatus;
   description?: string;
   location?: string;
@@ -28,7 +31,17 @@ export interface EventResponse {
   title: string;
   date: string; // ISO string format
   time: string;
-  type: EventType;
+  // Include both new and legacy fields in response
+  eventTypeId: string;
+  eventType?: {
+    id: string;
+    name: string;
+    code: string;
+    color: string;
+    icon?: string;
+  };
+  // Legacy field
+  type?: LegacyEventType;
   status: EventStatus;
   description?: string;
   location?: string;
@@ -57,13 +70,21 @@ const EventSchema: Schema = new Schema(
       required: [true, 'Event time is required'],
       trim: true
     },
+    // New field for referencing EventType model
+    eventTypeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'EventType',
+      required: [true, 'Event type ID is required']
+    },
+    // Legacy field kept for backward compatibility
     type: {
       type: String,
-      required: [true, 'Event type is required'],
       enum: {
         values: ['service', 'rehearsal', 'meeting', 'youth'],
         message: 'Event type must be service, rehearsal, meeting, or youth'
-      }
+      },
+      // Not required anymore as we use eventTypeId
+      required: false
     },
     status: {
       type: String,
@@ -111,18 +132,21 @@ const EventSchema: Schema = new Schema(
 
 // Add indexes for common queries
 EventSchema.index({ churchId: 1, date: 1 });
-EventSchema.index({ type: 1 });
+EventSchema.index({ eventTypeId: 1 });
+EventSchema.index({ type: 1 }); // Keep legacy index
 EventSchema.index({ status: 1 });
 
 // Transform document for API responses
 EventSchema.methods.toJSON = function() {
   const event = this.toObject();
-  return {
+  const response: any = {
     id: event._id.toString(),
     title: event.title,
     date: event.date.toISOString(),
     time: event.time,
-    type: event.type,
+    eventTypeId: event.eventTypeId ? event.eventTypeId.toString() : undefined,
+    // eventType will be populated separately
+    type: event.type, // Include legacy field if available
     status: event.status,
     description: event.description,
     location: event.location,
@@ -133,6 +157,19 @@ EventSchema.methods.toJSON = function() {
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString()
   };
+  
+  // If the eventType was populated, include it in the response
+  if (event.eventTypeId && typeof event.eventTypeId !== 'string' && event.eventTypeId._id) {
+    response.eventType = {
+      id: event.eventTypeId._id.toString(),
+      name: event.eventTypeId.name,
+      code: event.eventTypeId.code,
+      color: event.eventTypeId.color,
+      icon: event.eventTypeId.icon
+    };
+  }
+  
+  return response;
 };
 
 export default mongoose.model<IEvent>('Event', EventSchema); 

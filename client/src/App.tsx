@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import ServicePage from './pages/ServicePage';
+import EventTypesPage from './pages/EventTypesPage';
 import AuthPage from './pages/AuthPage';
 import { useAuth } from './hooks/useAuth';
 
@@ -33,7 +34,10 @@ function App() {
         {activePage === 'services' && (
           <ServicePage />
         )}
-        {activePage !== 'dashboard' && activePage !== 'services' && (
+        {activePage === 'event-types' && (
+          <EventTypesPage />
+        )}
+        {activePage !== 'dashboard' && activePage !== 'services' && activePage !== 'event-types' && (
           <div className="p-4 bg-white rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">{activePage.charAt(0).toUpperCase() + activePage.slice(1)}</h2>
             <p>This page is under construction.</p>

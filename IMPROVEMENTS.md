@@ -224,4 +224,96 @@ Our approach to delivering these improvements follows a phased rollout:
 3. **Phase 3**: Smart automation, analytics, and integration ecosystem
 4. **Phase 4**: Advanced customization, offline capabilities, and enterprise features
 
-Each phase will involve extensive user testing with actual church staff and volunteers to ensure we're meeting real needs rather than just adding features. 
+Each phase will involve extensive user testing with actual church staff and volunteers to ensure we're meeting real needs rather than just adding features.
+
+# Custom Event Types Implementation Plan
+
+## Overview
+Currently, the Church Planner application supports only four fixed event types: 'service', 'rehearsal', 'meeting', and 'youth'. This implementation plan outlines how to extend the application to support custom event types defined by users.
+
+## Implementation Steps
+
+### 1. Database Schema Updates
+- Create a new `EventType` model in the server with fields:
+  - `id`: Unique identifier
+  - `name`: Display name for the event type
+  - `code`: Unique code/slug for the event type (used in API and code)
+  - `color`: Color code for visual representation
+  - `icon`: Optional icon identifier
+  - `churchId`: Reference to the church that created this event type
+  - `isDefault`: Boolean indicating if this is a system default type
+  - `createdBy`: User who created the event type
+  - `createdAt`, `updatedAt`: Timestamps
+
+- Update the `Event` model to reference the `EventType` model instead of using an enum
+
+### 2. Server-Side Implementation
+- Create CRUD API endpoints for event types:
+  - `GET /api/event-types`: List all event types for a church
+  - `POST /api/event-types`: Create a new event type
+  - `GET /api/event-types/:id`: Get a specific event type
+  - `PUT /api/event-types/:id`: Update an event type
+  - `DELETE /api/event-types/:id`: Delete an event type (with validation to prevent deletion of types in use)
+
+- Create controller functions for these endpoints
+- Implement middleware for validation
+- Add seed data for default event types
+- Update event controller to work with the new event type references
+
+### 3. Client-Side Implementation
+- Create new TypeScript interfaces for event types
+- Implement event type service with API integration
+- Create a new "Event Types" management page in the admin section
+- Build UI components:
+  - Event type list view
+  - Event type creation/edit form with color picker
+  - Confirmation dialog for deletion
+
+- Update existing components:
+  - Modify event creation/edit form to load event types dynamically
+  - Update calendar display to use dynamic colors from event types
+  - Enhance event filtering to work with custom types
+
+### 4. Migration Strategy
+- Create a migration script to:
+  - Create default event types in the database
+  - Update existing events to reference the new event type records
+  - Handle edge cases and data validation
+
+### 5. UI/UX Considerations
+- Design intuitive color selection interface
+- Implement preview functionality for event appearance
+- Add drag-and-drop reordering of event types
+- Create visual indicators for event types in calendar and lists
+- Ensure accessibility with proper contrast ratios for selected colors
+
+### 6. Testing Strategy
+- Unit tests for event type model and controllers
+- Integration tests for API endpoints
+- Component tests for new UI elements
+- End-to-end tests for event type management workflow
+- Migration script testing with sample data
+
+## Technical Challenges
+- Maintaining backward compatibility with existing events
+- Ensuring color accessibility for user-selected colors
+- Handling references to deleted event types
+- Optimizing database queries with the additional join/lookup
+
+## Rollout Plan
+1. Implement database schema and server-side changes
+2. Create migration script and test thoroughly
+3. Implement client-side changes with feature flag
+4. Run migration in staging environment
+5. Test thoroughly in staging
+6. Deploy to production with feature initially hidden
+7. Enable feature for a subset of users
+8. Monitor for issues and gather feedback
+9. Roll out to all users
+
+## Future Enhancements
+- Event type templates for different church types
+- Event type grouping/categorization
+- Advanced permissions for event type management
+- Analytics on event type usage
+- Import/export of event type configurations 
