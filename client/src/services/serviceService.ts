@@ -1,5 +1,6 @@
 import api from './api';
 import { ServiceItemData } from '../components/services/ServiceItem';
+import { getCacheItem, setCacheItem, removeCacheItem, generateServicesCacheKey } from '../utils/cacheUtils';
 
 // Service data interface
 export interface Service {
@@ -43,6 +44,16 @@ export const getServices = async (
   year?: number
 ): Promise<ApiResponse<Service[]>> => {
   try {
+    // Generate cache key
+    const cacheKey = generateServicesCacheKey(churchId, month, year);
+    
+    // Check cache first
+    const cachedServices = getCacheItem<ApiResponse<Service[]>>(cacheKey);
+    if (cachedServices) {
+      console.log(`Using cached services for ${month !== undefined ? month + 1 : 'all'}/${year || 'all'}`);
+      return cachedServices;
+    }
+    
     let url = `/services/${churchId}`;
     
     // Add month and year query parameters if provided
@@ -55,6 +66,10 @@ export const getServices = async (
     
     const response = await api.get(url);
     console.log('Service API response:', response.data);
+    
+    // Cache the response for 30 minutes
+    setCacheItem(cacheKey, response.data, 30);
+    
     return response.data;
   } catch (error) {
     console.error('Error fetching services:', error);
@@ -74,7 +89,21 @@ export const getService = async (
   serviceId: string
 ): Promise<ApiResponse<Service>> => {
   try {
+    // Generate cache key for a single service
+    const cacheKey = `service_${serviceId}`;
+    
+    // Check cache first
+    const cachedService = getCacheItem<ApiResponse<Service>>(cacheKey);
+    if (cachedService) {
+      console.log(`Using cached service for ID: ${serviceId}`);
+      return cachedService;
+    }
+    
     const response = await api.get(`/services/${serviceId}`);
+    
+    // Cache the response for 30 minutes
+    setCacheItem(cacheKey, response.data, 30);
+    
     return response.data;
   } catch (error) {
     console.error('Error fetching service:', error);
@@ -97,6 +126,22 @@ export const createService = async (
 ): Promise<ApiResponse<Service>> => {
   try {
     const response = await api.post(`/services/${churchId}`, serviceData);
+    
+    // Invalidate cache for the month/year of the new service
+    if (response.data.success && response.data.data) {
+      const serviceDate = new Date(serviceData.date);
+      const month = serviceDate.getMonth();
+      const year = serviceDate.getFullYear();
+      
+      // Invalidate specific month cache
+      const monthCacheKey = generateServicesCacheKey(churchId, month, year);
+      removeCacheItem(monthCacheKey);
+      
+      // Also invalidate the "all services" cache
+      const allCacheKey = generateServicesCacheKey(churchId);
+      removeCacheItem(allCacheKey);
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Error creating service:', error);
@@ -119,6 +164,29 @@ export const updateService = async (
 ): Promise<ApiResponse<Service>> => {
   try {
     const response = await api.put(`/services/${serviceId}`, serviceData);
+    
+    // Invalidate cache for the month/year of the updated service
+    if (response.data.success && response.data.data) {
+      const serviceDate = new Date(serviceData.date);
+      const month = serviceDate.getMonth();
+      const year = serviceDate.getFullYear();
+      
+      // We don't know the churchId from this context, so we'll need to extract it from the response
+      if (response.data.data.churchId) {
+        // Invalidate specific month cache
+        const monthCacheKey = generateServicesCacheKey(response.data.data.churchId, month, year);
+        removeCacheItem(monthCacheKey);
+        
+        // Also invalidate the "all services" cache
+        const allCacheKey = generateServicesCacheKey(response.data.data.churchId);
+        removeCacheItem(allCacheKey);
+        
+        // Invalidate the specific service cache
+        const serviceCacheKey = `service_${serviceId}`;
+        removeCacheItem(serviceCacheKey);
+      }
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Error updating service:', error);
@@ -138,7 +206,33 @@ export const deleteService = async (
   serviceId: string
 ): Promise<ApiResponse<null>> => {
   try {
+    // First, get the service to know which cache to invalidate
+    const serviceResponse = await api.get(`/services/${serviceId}`);
+    const service = serviceResponse.data.data;
+    
     const response = await api.delete(`/services/${serviceId}`);
+    
+    // Invalidate cache for the month/year of the deleted service
+    if (response.data.success && service) {
+      const serviceDate = new Date(service.date);
+      const month = serviceDate.getMonth();
+      const year = serviceDate.getFullYear();
+      
+      if (service.churchId) {
+        // Invalidate specific month cache
+        const monthCacheKey = generateServicesCacheKey(service.churchId, month, year);
+        removeCacheItem(monthCacheKey);
+        
+        // Also invalidate the "all services" cache
+        const allCacheKey = generateServicesCacheKey(service.churchId);
+        removeCacheItem(allCacheKey);
+        
+        // Invalidate the specific service cache
+        const serviceCacheKey = `service_${serviceId}`;
+        removeCacheItem(serviceCacheKey);
+      }
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Error deleting service:', error);
@@ -159,6 +253,10 @@ export const seedServices = async (
 ): Promise<ApiResponse<Service[]>> => {
   try {
     const response = await api.post(`/services/${churchId}/seed`);
+    
+    // Clear all service caches for this church since we've seeded new data
+    clearServiceCachesForChurch(churchId);
+    
     return response.data;
   } catch (error) {
     console.error('Error seeding services:', error);
@@ -166,5 +264,25 @@ export const seedServices = async (
       success: false,
       message: 'Failed to seed services. Please try again later.'
     };
+  }
+};
+
+/**
+ * Clear all service caches for a specific church
+ * @param churchId - The ID of the church
+ */
+const clearServiceCachesForChurch = (churchId: string): void => {
+  try {
+    // This is a simple approach that clears all localStorage items that start with 'services_churchId'
+    // In a production app, we might want to be more selective
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith(`services_${churchId}`) || key.startsWith('service_'))) {
+        localStorage.removeItem(key);
+      }
+    }
+    console.log(`Cleared all service caches for church: ${churchId}`);
+  } catch (error) {
+    console.error('Error clearing service caches:', error);
   }
 }; 

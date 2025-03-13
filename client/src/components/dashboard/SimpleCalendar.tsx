@@ -96,7 +96,10 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
     let filteredEvents = events.filter(event => {
       try {
         const eventDate = parseISO(event.date);
-        return isSameDay(eventDate, day);
+        const isSameDay = eventDate.getDate() === day.getDate() && 
+                          eventDate.getMonth() === day.getMonth() && 
+                          eventDate.getFullYear() === day.getFullYear();
+        return isSameDay;
       } catch (error) {
         console.error('Error parsing date:', error, event.date);
         return false;
@@ -107,6 +110,13 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
     if (activeFilters.length > 0) {
       filteredEvents = filteredEvents.filter(event => activeFilters.includes(event.type));
     }
+    
+    // Sort events by time
+    filteredEvents.sort((a, b) => {
+      const timeA = a.time.split(' ')[0]; // Get the start time (e.g., "9:00" from "9:00 AM - 11:00 AM")
+      const timeB = b.time.split(' ')[0];
+      return timeA.localeCompare(timeB);
+    });
     
     return filteredEvents;
   };

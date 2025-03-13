@@ -329,6 +329,29 @@ const Dashboard = () => {
         // Format events for the calendar
         const formattedEvents = response.data.map(formatEventForCalendar);
         console.log('Fetched events:', formattedEvents);
+        console.log('Number of events fetched:', formattedEvents.length);
+        
+        // Log events by day to help debug
+        const eventsByDay = new Map<number, Event[]>();
+        formattedEvents.forEach(event => {
+          try {
+            const eventDate = new Date(event.date);
+            const day = eventDate.getDate();
+            if (!eventsByDay.has(day)) {
+              eventsByDay.set(day, []);
+            }
+            eventsByDay.get(day)?.push(event);
+          } catch (error) {
+            console.error('Error parsing event date:', error, event.date);
+          }
+        });
+        
+        console.log('Events by day:');
+        eventsByDay.forEach((events, day) => {
+          console.log(`Day ${day}: ${events.length} events`);
+          events.forEach(event => console.log(`  - ${event.title} (${event.time})`));
+        });
+        
         setEvents(formattedEvents);
       } else {
         console.log('No events found, seeding the database');
@@ -338,12 +361,20 @@ const Dashboard = () => {
           if (seedResponse.success && seedResponse.data) {
             const formattedSeedEvents = seedResponse.data.map(formatEventForCalendar);
             console.log('Seeded events:', formattedSeedEvents);
+            console.log('Number of seeded events:', formattedSeedEvents.length);
             
             // Filter events for the current month/year
             const filteredEvents = formattedSeedEvents.filter(event => {
-              const eventDate = new Date(event.date);
-              return eventDate.getMonth() === month && eventDate.getFullYear() === year;
+              try {
+                const eventDate = new Date(event.date);
+                return eventDate.getMonth() === month && eventDate.getFullYear() === year;
+              } catch (error) {
+                console.error('Error filtering event by date:', error, event.date);
+                return false;
+              }
             });
+            
+            console.log('Filtered events for current month/year:', filteredEvents.length);
             
             setEvents(filteredEvents);
           } else {
@@ -517,23 +548,21 @@ const Dashboard = () => {
       type: 'calendar',
       title: 'Calendar',
       size: 'full',
-      component: (
-        <div>
-          <SimpleCalendar 
-            events={events} 
-            onEventClick={(event) => {
-              console.log("Event clicked in Dashboard:", event);
-              setSelectedEvent(event);
-            }}
-            onDateClick={(date) => console.log('Date clicked:', date)}
-            onCreateEvent={handleCreateEvent}
-            onCreateEventForDate={handleCreateEventForDate}
-            onMonthChange={(month, year) => {
-              console.log(`Month changed to ${month + 1}/${year}`);
-              fetchEvents(month, year);
-            }}
-          />
-        </div>
+      component: () => (
+        <SimpleCalendar 
+          events={events} 
+          onEventClick={(event) => {
+            console.log("Event clicked in Dashboard:", event);
+            setSelectedEvent(event);
+          }}
+          onDateClick={(date) => console.log('Date clicked:', date)}
+          onCreateEvent={handleCreateEvent}
+          onCreateEventForDate={handleCreateEventForDate}
+          onMonthChange={(month, year) => {
+            console.log(`Month changed to ${month + 1}/${year}`);
+            fetchEvents(month, year);
+          }}
+        />
       ),
       isVisible: true
     },
@@ -542,10 +571,12 @@ const Dashboard = () => {
       type: 'analytics',
       title: 'Analytics',
       size: 'medium',
-      component: <AnalyticsWidgets 
-        data={mockAnalyticsData} 
-        onTimeRangeChange={(range) => console.log('Time range changed:', range)} 
-      />,
+      component: () => (
+        <AnalyticsWidgets 
+          data={mockAnalyticsData} 
+          onTimeRangeChange={(range) => console.log('Time range changed:', range)} 
+        />
+      ),
       isVisible: true
     },
     {
@@ -553,7 +584,7 @@ const Dashboard = () => {
       type: 'volunteers' as WidgetType,
       title: 'Volunteer Status',
       size: 'small',
-      component: <VolunteerStats />,
+      component: () => <VolunteerStats />,
       isVisible: true
     },
     {
@@ -561,7 +592,7 @@ const Dashboard = () => {
       type: 'custom' as WidgetType,
       title: 'Upcoming Services',
       size: 'small',
-      component: <UpcomingServices onServiceClick={handleServiceClick} />,
+      component: () => <UpcomingServices onServiceClick={handleServiceClick} />,
       isVisible: true
     },
     {
@@ -569,7 +600,7 @@ const Dashboard = () => {
       type: 'custom' as WidgetType,
       title: 'Quick Actions',
       size: 'medium',
-      component: <QuickActions />,
+      component: () => <QuickActions />,
       isVisible: true
     }
   ];

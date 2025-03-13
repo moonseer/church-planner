@@ -24,10 +24,21 @@ export const getEvents = async (req: Request, res: Response) => {
     
     // Filter by month and year if provided
     if (month && year) {
-      const startDate = new Date(parseInt(year as string), parseInt(month as string) - 1, 1);
-      const endDate = new Date(parseInt(year as string), parseInt(month as string), 0);
+      const monthNum = parseInt(month as string);
+      const yearNum = parseInt(year as string);
+      
+      // Create start date (first day of month)
+      const startDate = new Date(yearNum, monthNum - 1, 1, 0, 0, 0);
+      
+      // Create end date (last day of month)
+      // Get the first day of the next month, then subtract 1 millisecond
+      const endDate = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
+      
       query.date = { $gte: startDate, $lte: endDate };
-      console.log('Date range filter:', { startDate, endDate });
+      console.log('Date range filter:', { 
+        startDate: startDate.toISOString(), 
+        endDate: endDate.toISOString() 
+      });
     }
     
     // Filter by type if provided

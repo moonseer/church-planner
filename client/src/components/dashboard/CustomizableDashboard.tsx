@@ -12,7 +12,7 @@ export interface Widget {
   type: WidgetType;
   title: string;
   size: 'small' | 'medium' | 'large' | 'full';
-  component: React.ReactNode;
+  component: React.ReactNode | (() => React.ReactNode);
   isVisible: boolean;
 }
 
@@ -207,20 +207,28 @@ const SortableWidget = ({ widget, gridClass, isCustomizing }: SortableWidgetProp
     transition,
   };
 
+  // Render the component based on whether it's a function or a React node
+  const renderComponent = () => {
+    if (typeof widget.component === 'function') {
+      return widget.component();
+    }
+    return widget.component;
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`${gridClass} ${isCustomizing ? 'cursor-move' : ''}`}
-      {...attributes}
-      {...listeners}
+      {...(isCustomizing ? attributes : {})}
+      {...(isCustomizing ? listeners : {})}
     >
       <div className="bg-white rounded-lg shadow overflow-hidden h-full">
         <div className="p-2 sm:p-4 border-b border-neutral-200">
           <h2 className="text-base sm:text-lg font-medium text-neutral-900">{widget.title}</h2>
         </div>
         <div className="p-2 sm:p-4 overflow-auto">
-          {widget.component}
+          {renderComponent()}
         </div>
       </div>
     </div>
