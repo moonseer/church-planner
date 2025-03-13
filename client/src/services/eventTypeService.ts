@@ -34,6 +34,7 @@ export const getEventTypes = async (): Promise<EventTypeDefinition[]> => {
     console.log('No cached event types found, fetching from API');
     
     // Fetch from API if not in cache
+    // The server will get the churchId from the authenticated user
     const response = await api.get<EventTypeResponse>('/api/event-types');
     
     console.log('Event types API response:', response);

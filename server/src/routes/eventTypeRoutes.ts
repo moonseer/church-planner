@@ -11,7 +11,7 @@ import {
 
 const router = express.Router();
 
-// Event type routes
+// Event type routes - all routes are protected at the server level
 router.route('/')
   .get(getEventTypes)
   .post(createEventType);

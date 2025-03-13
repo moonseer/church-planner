@@ -114,6 +114,7 @@ app.get('/api/auth/test', (req: Request, res: Response) => {
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
     console.log('Login attempt with:', { email: req.body.email });
+    console.log('Request body:', req.body);
     const { email, password } = req.body;
 
     // Validate input
@@ -123,6 +124,8 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       return;
     }
 
+    console.log('Looking for user with email:', email);
+    
     // Find user and include password for comparison
     const user = await User.findOne({ email }).select('+password');
     
@@ -132,18 +135,27 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       return;
     }
 
-    console.log('User found, comparing password');
+    console.log('User found:', {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      hasPassword: !!user.password
+    });
     
     try {
       // Check password
+      console.log('Comparing password...');
       const isPasswordCorrect = await user.comparePassword(password);
       console.log('Password comparison result:', isPasswordCorrect);
       
       if (!isPasswordCorrect) {
+        console.log('Password incorrect');
         res.status(401).json({ success: false, message: 'Invalid credentials' });
         return;
       }
 
+      console.log('Password correct, generating token...');
+      
       // Generate JWT token manually instead of using the model method
       const token = jwt.sign(
         { id: user._id, name: user.name, email: user.email, role: user.role },
@@ -152,18 +164,23 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       );
       console.log('Token generated successfully');
 
+      // Prepare user data for response
+      const userData = {
+        id: user._id,
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        churchName: user.churchName,
+        role: user.role,
+      };
+      
+      console.log('Sending successful login response with user data:', userData);
+
       res.status(200).json({
         success: true,
         token,
-        user: {
-          id: user._id,
-          name: user.name,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          churchName: user.churchName,
-          role: user.role,
-        },
+        user: userData,
       });
     } catch (passwordError) {
       console.error('Password comparison error:', passwordError);

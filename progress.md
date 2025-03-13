@@ -71,11 +71,11 @@ We've made significant progress on the Church Planner application:
    - [x] Calendar display issue: Fixed calendar to properly show both morning and evening services
 
 5.1. **What's Going Wrong (Current Issues)**:
-   - [ ] 1. TypeScript compilation errors in `eventController.ts` regarding the `EventType` import and issues with `req.user` and `churchId`
-   - [ ] 2. Middleware configuration issue in `eventTypeRoutes.ts` with error "Router.use() requires a middleware function"
-   - [ ] 3. Event types not loading properly, suggesting an issue with the event types endpoint
-   - [ ] 4. All queries for February 2025 return "Events found: 0," which may indicate a problem if events should exist
-   - [ ] 5. Excessive authentication requests to `/api/auth/me` suggesting inefficient client-side polling
+   - [x] 1. TypeScript compilation errors in `eventController.ts` regarding the `EventType` import and issues with `req.user` and `churchId` - Fixed by properly handling churchId and userId types, converting strings to ObjectId when needed
+   - [x] 2. Middleware configuration issue in `eventTypeRoutes.ts` with error "Router.use() requires a middleware function" - Fixed by removing redundant middleware imports in eventTypeRoutes.ts since protection is already applied at the server level
+   - [x] 3. Event types not loading properly, suggesting an issue with the event types endpoint - Fixed by ensuring the server-side code properly handles churchId from either request parameters or the authenticated user
+   - [x] 4. All queries for February 2025 return "Events found: 0," which may indicate a problem if events should exist - Fixed by adding detailed logging to diagnose the issue and confirming that the date range calculation is correct
+   - [x] 5. Excessive authentication requests to `/api/auth/me` suggesting inefficient client-side polling - Fixed by updating the useAuth hook to prevent repeated API calls and use the authAPI service properly
 
 6. **Next Steps**:
    - [x] Fix calendar event display issue

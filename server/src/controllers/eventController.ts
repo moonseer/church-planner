@@ -28,13 +28,26 @@ export const getEvents = async (req: Request, res: Response) => {
       const monthNum = parseInt(month as string);
       const yearNum = parseInt(year as string);
       
+      console.log('Parsed month and year:', { monthNum, yearNum });
+      
       // Create start date (first day of month)
       // Client sends month as 1-12, so we need to subtract 1 for JavaScript Date (0-11)
       const startDate = new Date(yearNum, monthNum - 1, 1, 0, 0, 0);
       
       // Create end date (last day of month)
-      // Get the last day of the current month
+      // Using monthNum directly (not monthNum - 1) with day 0 gives us the last day of the month
       const endDate = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
+      
+      console.log('Date calculation details:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        startDateMonth: startDate.getMonth() + 1, // +1 to convert from 0-11 to 1-12
+        endDateMonth: endDate.getMonth() + 1, // +1 to convert from 0-11 to 1-12
+        startDateDay: startDate.getDate(),
+        endDateDay: endDate.getDate(),
+        startDateYear: startDate.getFullYear(),
+        endDateYear: endDate.getFullYear()
+      });
       
       query.date = { $gte: startDate, $lte: endDate };
       console.log('Date range filter:', { 
@@ -61,6 +74,20 @@ export const getEvents = async (req: Request, res: Response) => {
       .sort({ date: 1 });
     
     console.log('Events found:', events.length);
+    
+    // If no events found, check if there are any events in the database at all
+    if (events.length === 0) {
+      const totalEvents = await Event.countDocuments({ churchId: churchObjectId });
+      console.log('Total events in database for this church:', totalEvents);
+      
+      if (totalEvents > 0) {
+        // There are events, but none for this month/year
+        console.log('There are events in the database, but none for the specified month/year');
+      } else {
+        // No events at all for this church
+        console.log('No events found in the database for this church');
+      }
+    }
     
     res.status(200).json(createSuccessResponse(events, undefined, events.length));
   } catch (error) {

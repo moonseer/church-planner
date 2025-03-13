@@ -15,8 +15,18 @@ interface AuthRequest extends Request {
  */
 export const getEventTypes = async (req: AuthRequest, res: Response) => {
   try {
+    console.log('getEventTypes called with params:', req.params);
+    console.log('User from request:', req.user);
+    
     // Get churchId from params or from user object
-    const churchId = req.params.churchId || (req.user && req.user._id);
+    let churchId: string | undefined = req.params.churchId;
+    
+    // If churchId is not in params, try to get it from user object
+    if (!churchId && req.user && req.user._id) {
+      churchId = req.user._id.toString();
+    }
+    
+    console.log('Resolved churchId:', churchId);
     
     if (!churchId) {
       return res.status(400).json({
@@ -25,9 +35,14 @@ export const getEventTypes = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const eventTypes = await EventType.find({ churchId })
+    // Convert churchId to ObjectId
+    const churchObjectId = new mongoose.Types.ObjectId(churchId);
+
+    const eventTypes = await EventType.find({ churchId: churchObjectId })
       .sort({ isDefault: -1, name: 1 }) // Default types first, then alphabetical
       .select('name code color icon isDefault');
+    
+    console.log('Event types found:', eventTypes.length);
     
     res.status(200).json({
       success: true,
@@ -322,8 +337,19 @@ export const seedDefaultEventTypes = async (req: AuthRequest, res: Response) => 
     console.log('Seeding default event types, request params:', req.params);
     console.log('User from request:', req.user);
     
-    const churchId = req.params.churchId || (req.user && req.user._id);
-    const userId = req.user && req.user._id;
+    // Get churchId from params or from user object
+    let churchId: string | undefined = req.params.churchId;
+    
+    // If churchId is not in params, try to get it from user object
+    if (!churchId && req.user && req.user._id) {
+      churchId = req.user._id.toString();
+    }
+    
+    // Get userId from user object
+    let userId: string | undefined;
+    if (req.user && req.user._id) {
+      userId = req.user._id.toString();
+    }
     
     console.log('Resolved churchId:', churchId);
     console.log('Resolved userId:', userId);
@@ -343,6 +369,10 @@ export const seedDefaultEventTypes = async (req: AuthRequest, res: Response) => 
         message: 'User not authenticated'
       });
     }
+    
+    // Convert IDs to ObjectId
+    const churchObjectId = new mongoose.Types.ObjectId(churchId);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
     
     // Define default event types
     const defaultEventTypes = [
@@ -376,7 +406,7 @@ export const seedDefaultEventTypes = async (req: AuthRequest, res: Response) => 
     
     // Check which default types already exist
     const existingTypes = await EventType.find({ 
-      churchId,
+      churchId: churchObjectId,
       isDefault: true
     });
     
@@ -393,8 +423,8 @@ export const seedDefaultEventTypes = async (req: AuthRequest, res: Response) => 
     if (typesToCreate.length > 0) {
       const eventTypesToInsert = typesToCreate.map(type => ({
         ...type,
-        churchId,
-        createdBy: userId
+        churchId: churchObjectId,
+        createdBy: userObjectId
       }));
       
       console.log('Event types to insert:', eventTypesToInsert);
@@ -421,7 +451,7 @@ export const seedDefaultEventTypes = async (req: AuthRequest, res: Response) => 
     }
     
     // Get all event types for the church
-    const allEventTypes = await EventType.find({ churchId })
+    const allEventTypes = await EventType.find({ churchId: churchObjectId })
       .sort({ isDefault: -1, name: 1 });
     
     console.log('All event types after seeding:', allEventTypes);

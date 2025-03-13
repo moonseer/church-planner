@@ -4,13 +4,19 @@ import axios from 'axios';
 // For local development outside Docker, use localhost
 // We'll use environment variables to handle different environments
 // @ts-ignore - Vite specific environment variables
-const API_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8080';
+const API_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8080/api';
 
-console.log('API URL:', API_URL); // Add logging to debug
+// Override API_URL if we're in a browser environment to ensure we use localhost
+const BROWSER_API_URL = 'http://localhost:8080/api';
+
+// Use the browser URL when in a browser environment
+const BASE_URL = typeof window !== 'undefined' ? BROWSER_API_URL : API_URL;
+
+console.log('API Base URL:', BASE_URL);
 
 // Create axios instance
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -86,7 +92,7 @@ api.interceptors.response.use(
 export const authAPI = {
   register: async (name: string, email: string, password: string, churchName: string) => {
     try {
-      const response = await api.post('/api/auth/register', { name, email, password, churchName });
+      const response = await api.post('/auth/register', { name, email, password, churchName });
       return response.data;
     } catch (error) {
       console.error('Registration error:', error);
@@ -95,18 +101,51 @@ export const authAPI = {
   },
   
   login: async (email: string, password: string) => {
+    console.log('Attempting login with email:', email);
+    
     try {
-      const response = await api.post('/api/auth/login', { email, password });
+      // First check if the server is reachable
+      console.log('Performing health check before login...');
+      try {
+        const healthResponse = await axios.get(`${BASE_URL.replace('/api', '')}/api/health`);
+        console.log('Health check response:', healthResponse.data);
+      } catch (healthError: any) {
+        console.error('Health check failed:', healthError.message);
+        if (healthError.response) {
+          console.error('Health check error response:', healthError.response.data);
+        } else if (healthError.request) {
+          console.error('Health check no response received. Network issue?');
+        }
+      }
+      
+      // Now attempt the login
+      console.log('Sending login request to:', `${BASE_URL}/auth/login`);
+      const response = await axios.post(`${BASE_URL}/auth/login`, { email, password });
+      console.log('Login response received:', response.status);
       return response.data;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('Login error:', error.message);
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        throw error.response.data;
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received. Network issue?');
+        throw { message: 'Network error. Please check your connection.' };
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error setting up request:', error.message);
+        throw { message: 'An unexpected error occurred.' };
+      }
     }
   },
   
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/api/auth/me');
+      const response = await api.get('/auth/me');
       return response.data;
     } catch (error) {
       console.error('Get current user error:', error);
@@ -116,7 +155,7 @@ export const authAPI = {
   
   forgotPassword: async (email: string) => {
     try {
-      const response = await api.post('/api/auth/forgot-password', { email });
+      const response = await api.post('/auth/forgot-password', { email });
       return response.data;
     } catch (error) {
       console.error('Forgot password error:', error);
@@ -126,7 +165,7 @@ export const authAPI = {
   
   resetPassword: async (token: string, password: string) => {
     try {
-      const response = await api.post('/api/auth/reset-password', { token, password });
+      const response = await api.post('/auth/reset-password', { token, password });
       return response.data;
     } catch (error) {
       console.error('Reset password error:', error);

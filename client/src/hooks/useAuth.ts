@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { authAPI } from '../services/api';
 
 interface User {
   id: string;
@@ -19,34 +19,33 @@ export const useAuth = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<User | null>(null);
   const [resetToken, setResetToken] = useState<string | undefined>(undefined);
-
-  // API base URL
-  const API_URL = 'http://localhost:8080/api';
+  // Add a state to track if we've already attempted to fetch the user
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Attempt to get user data with the token
-      fetchCurrentUser(token);
+    // Only attempt to fetch the user once when the component mounts
+    if (!hasAttemptedFetch) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Attempt to get user data with the token
+        fetchCurrentUser();
+      }
+      setHasAttemptedFetch(true);
     }
-  }, []);
+  }, [hasAttemptedFetch]); // Only run when hasAttemptedFetch changes
 
-  const fetchCurrentUser = async (token: string) => {
+  const fetchCurrentUser = async () => {
     try {
-      console.log('Fetching current user with token:', token);
+      console.log('Fetching current user');
       
-      const response = await axios.get(`${API_URL}/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      // Use the authAPI service instead of direct axios call
+      const response = await authAPI.getCurrentUser();
       
-      console.log('Current user response:', response.data);
+      console.log('Current user response:', response);
       
-      if (response.data.success) {
+      if (response.success) {
         // Ensure the user object has all required properties
-        const user = response.data.user;
+        const user = response.user;
         
         // If name is missing but we have firstName/lastName, construct it
         if (!user.name && (user.firstName || user.lastName)) {
@@ -80,25 +79,15 @@ export const useAuth = () => {
     setMessage('');
 
     try {
-      console.log('Attempting login with:', { email, password });
+      console.log('Attempting login with:', { email });
       
-      // First, try a simple fetch to check if the server is reachable
-      try {
-        const healthCheck = await fetch('http://localhost:8080/health');
-        console.log('Health check response:', await healthCheck.text());
-      } catch (healthError) {
-        console.error('Health check failed:', healthError);
-      }
-      
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        email,
-        password
-      });
+      // Use the authAPI service instead of direct axios call
+      const response = await authAPI.login(email, password);
 
-      console.log('Login response:', response.data);
-      if (response.data.success) {
+      console.log('Login response:', response);
+      if (response.success) {
         // Ensure the user object has all required properties
-        const user = response.data.user;
+        const user = response.user;
         
         // If name is missing but we have firstName/lastName, construct it
         if (!user.name && (user.firstName || user.lastName)) {
@@ -113,9 +102,9 @@ export const useAuth = () => {
         setMessage('Login successful!');
         setIsLoggedIn(true);
         setUserData(user);
-        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('token', response.token);
       } else {
-        setMessage(response.data.message || 'Login failed. Please check your credentials.');
+        setMessage(response.message || 'Login failed. Please check your credentials.');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -132,31 +121,17 @@ export const useAuth = () => {
     try {
       console.log('Attempting registration with:', { firstName, lastName, email, churchName });
       
-      // First, try a simple fetch to check if the server is reachable
-      try {
-        const healthCheck = await fetch('http://localhost:8080/health');
-        console.log('Health check response:', await healthCheck.text());
-      } catch (healthError) {
-        console.error('Health check failed:', healthError);
-      }
-      
-      const response = await axios.post(`${API_URL}/auth/register`, {
-        name: `${firstName} ${lastName}`, // Combine for the name field
-        firstName,
-        lastName,
-        email,
-        password,
-        churchName
-      });
+      // Use the authAPI service instead of direct axios call
+      const response = await authAPI.register(`${firstName} ${lastName}`, email, password, churchName);
 
-      console.log('Registration response:', response.data);
-      if (response.data.success) {
+      console.log('Registration response:', response);
+      if (response.success) {
         setMessage('Registration successful!');
         setIsLoggedIn(true);
-        setUserData(response.data.user);
-        localStorage.setItem('token', response.data.token);
+        setUserData(response.user);
+        localStorage.setItem('token', response.token);
       } else {
-        setMessage('Registration failed: ' + response.data.message);
+        setMessage('Registration failed: ' + response.message);
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -181,12 +156,13 @@ export const useAuth = () => {
     setMessage('');
 
     try {
-      const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+      // Use the authAPI service instead of direct axios call
+      const response = await authAPI.forgotPassword(email);
       
-      if (response.data.success) {
+      if (response.success) {
         setMessage('If your email exists in our system, you will receive a password reset link.');
       } else {
-        setMessage('Failed to request password reset: ' + response.data.message);
+        setMessage('Failed to request password reset: ' + response.message);
       }
     } catch (error: any) {
       console.error('Forgot password error:', error);
@@ -201,16 +177,14 @@ export const useAuth = () => {
     setMessage('');
 
     try {
-      const response = await axios.post(`${API_URL}/auth/reset-password`, { 
-        password,
-        token
-      });
+      // Use the authAPI service instead of direct axios call
+      const response = await authAPI.resetPassword(token, password);
       
-      if (response.data.success) {
+      if (response.success) {
         setMessage('Your password has been reset successfully. You can now log in with your new password.');
         setResetToken(undefined);
       } else {
-        setMessage('Failed to reset password: ' + response.data.message);
+        setMessage('Failed to reset password: ' + response.message);
       }
     } catch (error: any) {
       console.error('Reset password error:', error);
