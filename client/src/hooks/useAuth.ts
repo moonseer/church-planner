@@ -19,24 +19,50 @@ export const useAuth = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<User | null>(null);
   const [resetToken, setResetToken] = useState<string | undefined>(undefined);
-  // Add a state to track if we've already attempted to fetch the user
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  // Remove the hasAttemptedFetch state as we want to check on every page load
+  const [tokenCheckComplete, setTokenCheckComplete] = useState(false);
 
   useEffect(() => {
-    // Only attempt to fetch the user once when the component mounts
-    if (!hasAttemptedFetch) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        // Attempt to get user data with the token
-        fetchCurrentUser();
+    // This effect runs on component mount and will check for a token
+    console.log('Auth hook initialized, checking for existing token...');
+    const checkAuthStatus = async () => {
+      try {
+        console.log('Attempting to validate session with server...');
+        await fetchCurrentUser();
+        setTokenCheckComplete(true);
+      } catch (error) {
+        console.error('Error validating session:', error);
+        setIsLoggedIn(false);
+        setUserData(null);
+        setTokenCheckComplete(true);
       }
-      setHasAttemptedFetch(true);
-    }
-  }, [hasAttemptedFetch]); // Only run when hasAttemptedFetch changes
+    };
+    
+    checkAuthStatus();
+    
+    // Set up an event listener for storage changes (in case token is modified in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token') {
+        console.log('Token changed in another tab, updating auth state');
+        if (e.newValue) {
+          fetchCurrentUser();
+        } else {
+          setIsLoggedIn(false);
+          setUserData(null);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []); // Empty dependency array means this runs once on mount
 
   const fetchCurrentUser = async () => {
     try {
-      console.log('Fetching current user');
+      console.log('Fetching current user data from server...');
       
       // Use the authAPI service instead of direct axios call
       const response = await authAPI.getCurrentUser();
@@ -57,18 +83,17 @@ export const useAuth = () => {
           user.role = 'user';
         }
         
+        console.log('User authenticated successfully:', user);
         setIsLoggedIn(true);
         setUserData(user);
       } else {
-        // Token is invalid or expired
-        console.log('Token invalid or expired');
-        localStorage.removeItem('token');
+        // Session is invalid or expired
+        console.log('Session invalid or expired');
         setIsLoggedIn(false);
         setUserData(null);
       }
     } catch (error) {
       console.error('Error fetching current user:', error);
-      localStorage.removeItem('token');
       setIsLoggedIn(false);
       setUserData(null);
     }
@@ -207,6 +232,7 @@ export const useAuth = () => {
     isLoading,
     message,
     resetToken,
+    tokenCheckComplete,
     handleLogin,
     handleRegister,
     handleLogout,

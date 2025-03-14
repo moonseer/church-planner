@@ -35,7 +35,7 @@ export const getEventTypes = async (): Promise<EventTypeDefinition[]> => {
     
     // Fetch from API if not in cache
     // The server will get the churchId from the authenticated user
-    const response = await api.get<EventTypeResponse>('/api/event-types');
+    const response = await api.get<EventTypeResponse>('/event-types');
     
     console.log('Event types API response:', response);
     
@@ -74,7 +74,7 @@ export const getEventType = async (id: string): Promise<EventTypeDefinition> => 
     }
     
     // Fetch from API if not in cache
-    const response = await api.get<EventTypeResponse>(`/api/event-types/${id}`);
+    const response = await api.get<EventTypeResponse>(`/event-types/${id}`);
     
     if (response.data && response.data.success) {
       const eventType = response.data.data as EventTypeDefinition;
@@ -97,7 +97,7 @@ export const getEventType = async (id: string): Promise<EventTypeDefinition> => 
  */
 export const createEventType = async (eventTypeData: EventTypeFormData): Promise<EventTypeDefinition> => {
   try {
-    const response = await api.post<EventTypeResponse>('/api/event-types', eventTypeData);
+    const response = await api.post<EventTypeResponse>('/event-types', eventTypeData);
     
     if (response.data && response.data.success) {
       const eventType = response.data.data as EventTypeDefinition;
@@ -120,7 +120,7 @@ export const createEventType = async (eventTypeData: EventTypeFormData): Promise
  */
 export const updateEventType = async (id: string, eventTypeData: Partial<EventTypeFormData>): Promise<EventTypeDefinition> => {
   try {
-    const response = await api.put<EventTypeResponse>(`/api/event-types/${id}`, eventTypeData);
+    const response = await api.put<EventTypeResponse>(`/event-types/${id}`, eventTypeData);
     
     if (response.data && response.data.success) {
       const eventType = response.data.data as EventTypeDefinition;
@@ -144,7 +144,7 @@ export const updateEventType = async (id: string, eventTypeData: Partial<EventTy
  */
 export const deleteEventType = async (id: string): Promise<void> => {
   try {
-    const response = await api.delete<EventTypeResponse>(`/api/event-types/${id}`);
+    const response = await api.delete<EventTypeResponse>(`/event-types/${id}`);
     
     if (response.data && response.data.success) {
       // Invalidate caches
@@ -168,7 +168,7 @@ export const seedDefaultEventTypes = async (): Promise<EventTypeDefinition[]> =>
   try {
     console.log('Starting seedDefaultEventTypes request');
     
-    const response = await api.post<EventTypeResponse>('/api/event-types/seed');
+    const response = await api.post<EventTypeResponse>('/event-types/seed');
     
     console.log('Seed event types API response:', response);
     
@@ -198,7 +198,7 @@ export const seedDefaultEventTypes = async (): Promise<EventTypeDefinition[]> =>
  */
 export const getEventTypeStats = async (id: string): Promise<any> => {
   try {
-    const response = await api.get<any>(`/api/event-types/${id}/stats`);
+    const response = await api.get<any>(`/event-types/${id}/stats`);
     
     if (response.data && response.data.success) {
       return response.data.data;

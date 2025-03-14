@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
 import { format, parseISO } from 'date-fns';
-import { Event, FormEvent, LegacyEventType, EventStatus, EventTypeDefinition } from '../../types/event';
-import { getEventTypes, seedDefaultEventTypes } from '../../services/eventTypeService';
+import { Event, FormEvent, LegacyEventType, EventStatus, EventTypeDefinition, EventTypeFormData } from '../../types/event';
+import { getEventTypes, seedDefaultEventTypes, createEventType } from '../../services/eventTypeService';
 import { getEventClass } from '../../utils/eventColors';
 
 interface EventFormProps {
@@ -37,6 +37,13 @@ const EventForm: React.FC<EventFormProps> = ({
   const [eventTypes, setEventTypes] = useState<EventTypeDefinition[]>([]);
   const [loadingEventTypes, setLoadingEventTypes] = useState(false);
   const [eventTypesError, setEventTypesError] = useState<string | null>(null);
+  
+  // New state for custom event type creation
+  const [showNewTypeForm, setShowNewTypeForm] = useState(false);
+  const [newTypeName, setNewTypeName] = useState('');
+  const [newTypeColor, setNewTypeColor] = useState('#4F46E5'); // Default color
+  const [creatingEventType, setCreatingEventType] = useState(false);
+  const [newTypeError, setNewTypeError] = useState<string | null>(null);
 
   // Fetch event types on component mount
   useEffect(() => {
@@ -187,6 +194,75 @@ const EventForm: React.FC<EventFormProps> = ({
   // Get the selected event type
   const selectedEventType = eventTypes.find(et => et.id === eventTypeId);
 
+  // Handle creating a new event type
+  const handleCreateEventType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newTypeName.trim()) {
+      setNewTypeError('Event type name is required');
+      return;
+    }
+    
+    try {
+      setCreatingEventType(true);
+      setNewTypeError(null);
+      
+      // Generate a code from the name (lowercase, replace spaces with hyphens)
+      const code = newTypeName.toLowerCase().replace(/\s+/g, '-');
+      
+      // Create the new event type
+      const eventTypeData: EventTypeFormData = {
+        name: newTypeName,
+        code,
+        color: newTypeColor
+      };
+      
+      console.log('Creating new event type:', eventTypeData);
+      
+      // Use direct fetch to avoid API URL issues
+      const response = await fetch('http://localhost:8080/api/event-types', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(eventTypeData)
+      });
+      
+      const data = await response.json();
+      console.log('Create event type response:', data);
+      
+      if (data.success && data.data) {
+        // Add the new event type to the list
+        const newEventType = data.data as EventTypeDefinition;
+        console.log('New event type created:', newEventType);
+        
+        // Ensure the ID is properly formatted
+        if (newEventType && newEventType.id) {
+          setEventTypes(prevTypes => [...prevTypes, newEventType]);
+          
+          // Select the new event type
+          setEventTypeId(newEventType.id);
+          console.log('Setting event type ID to:', newEventType.id);
+          
+          // Reset the form
+          setNewTypeName('');
+          setShowNewTypeForm(false);
+        } else {
+          console.error('New event type is missing ID:', newEventType);
+          setNewTypeError('Created event type is missing ID');
+        }
+      } else {
+        setNewTypeError(data.message || 'Failed to create event type');
+      }
+    } catch (error) {
+      console.error('Error creating event type:', error);
+      setNewTypeError('An error occurred while creating the event type');
+    } finally {
+      setCreatingEventType(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-auto">
       <div className="flex justify-between items-center p-4 border-b border-neutral-200">
@@ -278,29 +354,117 @@ const EventForm: React.FC<EventFormProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="relative">
-                <select
-                  id="eventTypeId"
-                  value={eventTypeId}
-                  onChange={(e) => setEventTypeId(e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
-                  required
-                >
-                  {eventTypes.length === 0 ? (
-                    <option value="" disabled>No event types available</option>
-                  ) : (
-                    eventTypes.map(eventType => (
+              <div className="space-y-2">
+                <div className="relative">
+                  <select
+                    id="eventTypeId"
+                    value={eventTypeId}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "new") {
+                        setShowNewTypeForm(true);
+                        setEventTypeId('');
+                      } else {
+                        setEventTypeId(value);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
+                    required={!showNewTypeForm}
+                    disabled={showNewTypeForm}
+                  >
+                    <option value="" disabled>Select an event type</option>
+                    {eventTypes.map(eventType => (
                       <option key={eventType.id} value={eventType.id}>
                         {eventType.name}
                       </option>
-                    ))
+                    ))}
+                    <option value="new">+ Add new event type</option>
+                  </select>
+                  {selectedEventType && (
+                    <div 
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full border border-gray-300"
+                      style={{ backgroundColor: selectedEventType.color }}
+                    ></div>
                   )}
-                </select>
-                {selectedEventType && (
-                  <div 
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full border border-gray-300"
-                    style={{ backgroundColor: selectedEventType.color }}
-                  ></div>
+                </div>
+                
+                {!showNewTypeForm && (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewTypeForm(true)}
+                    className="text-sm text-primary-600 hover:text-primary-700 flex items-center"
+                  >
+                    <PlusCircleIcon className="h-4 w-4 mr-1" />
+                    Create new event type
+                  </button>
+                )}
+                
+                {showNewTypeForm && (
+                  <div className="mt-2 p-3 border border-neutral-300 rounded-md bg-neutral-50">
+                    <h4 className="text-sm font-medium mb-2">Create New Event Type</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label htmlFor="newTypeName" className="block text-xs font-medium text-neutral-700 mb-1">
+                          Name *
+                        </label>
+                        <input
+                          id="newTypeName"
+                          type="text"
+                          value={newTypeName}
+                          onChange={(e) => setNewTypeName(e.target.value)}
+                          className="w-full px-2 py-1 text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          placeholder="e.g. Bible Study"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="newTypeColor" className="block text-xs font-medium text-neutral-700 mb-1">
+                          Color
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            id="newTypeColor"
+                            type="color"
+                            value={newTypeColor}
+                            onChange={(e) => setNewTypeColor(e.target.value)}
+                            className="w-8 h-8 border border-neutral-300 rounded p-0"
+                          />
+                          <input
+                            type="text"
+                            value={newTypeColor}
+                            onChange={(e) => setNewTypeColor(e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            placeholder="#RRGGBB"
+                          />
+                        </div>
+                      </div>
+                      {newTypeError && (
+                        <div className="text-xs text-red-600">{newTypeError}</div>
+                      )}
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewTypeForm(false);
+                            setNewTypeName('');
+                            setNewTypeError(null);
+                          }}
+                          className="px-2 py-1 text-xs border border-neutral-300 rounded-md hover:bg-neutral-100"
+                          disabled={creatingEventType}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCreateEventType}
+                          className="px-2 py-1 text-xs bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          disabled={creatingEventType}
+                        >
+                          {creatingEventType ? 'Creating...' : 'Create'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             )}

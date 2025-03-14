@@ -1,35 +1,27 @@
-import express from 'express';
+import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import mongoose, { Document } from 'mongoose';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import connectDB from './config/database';
 
 // Load environment variables
 dotenv.config();
 
+// Connect to database
+connectDB();
+
 // Initialize express app
-const app = express();
-const PORT = process.env.PORT || 5000;
+const app: Express = express();
+const PORT = process.env.PORT || 8080;
 
 // Middleware
-app.use(express.json());
 app.use(cors({
-  origin: ['http://localhost:4000', 'http://client:4000'],
+  origin: process.env.CORS_ORIGIN || 'http://localhost:4000',
   credentials: true
 }));
-
-// Connect to MongoDB
-const connectDB = async () => {
-  try {
-    const mongoURI = process.env.MONGO_URI || 'mongodb://mongodb:27017/church-planner';
-    await mongoose.connect(mongoURI);
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
-  }
-};
+app.use(express.json());
 
 // Define User interface
 interface IUser extends Document {
@@ -73,9 +65,15 @@ UserSchema.methods.comparePassword = async function(candidatePassword: string): 
 
 // Generate JWT token
 UserSchema.methods.generateAuthToken = function(): string {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    console.error('JWT_SECRET environment variable is not set!');
+    throw new Error('JWT_SECRET environment variable is not set. This is a critical security issue.');
+  }
+  
   return jwt.sign(
     { id: this._id, name: this.name, email: this.email, role: this.role },
-    process.env.JWT_SECRET || 'your-secret-key',
+    jwtSecret,
     { expiresIn: '1d' }
   );
 };
@@ -97,7 +95,13 @@ const protect = async (req: any, res: any, next: any) => {
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        console.error('JWT_SECRET environment variable is not set!');
+        throw new Error('JWT_SECRET environment variable is not set. This is a critical security issue.');
+      }
+      
+      const decoded = jwt.verify(token, jwtSecret) as any;
       const user = await User.findById(decoded.id);
       
       if (!user) {
@@ -117,13 +121,95 @@ const protect = async (req: any, res: any, next: any) => {
 
 // Routes
 // Health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
 });
 
 // Test route
-app.get('/api/auth/test', (req, res) => {
-  res.status(200).json({ success: true, message: 'Auth API is working' });
+app.get('/test-html', (req: Request, res: Response) => {
+  console.log('Test HTML route accessed');
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Server Test</title>
+      </head>
+      <body>
+        <h1>Server is working!</h1>
+        <p>This confirms the server is running and can serve HTML content.</p>
+      </body>
+    </html>
+  `);
+});
+
+// Static documentation route
+app.get('/api-docs', (req: Request, res: Response) => {
+  console.log('API docs accessed');
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Church Planner API Documentation</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 1000px; margin: 0 auto; padding: 20px; }
+          h1 { color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+          h2 { color: #444; margin-top: 30px; }
+          .endpoint { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+          .method { font-weight: bold; color: #0066cc; }
+          .url { font-family: monospace; }
+          pre { background: #f9f9f9; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        </style>
+      </head>
+      <body>
+        <h1>Church Planner API Documentation</h1>
+        <p>This is a simplified documentation for the Church Planner API.</p>
+        
+        <h2>Authentication</h2>
+        
+        <div class="endpoint">
+          <p><span class="method">POST</span> <span class="url">/api/auth/login</span></p>
+          <p>Authenticates a user and returns user data with a token.</p>
+          <pre>
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+          </pre>
+        </div>
+        
+        <div class="endpoint">
+          <p><span class="method">POST</span> <span class="url">/api/auth/register</span></p>
+          <p>Registers a new user and returns user data with a token.</p>
+          <pre>
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "password": "password123",
+  "churchName": "First Baptist Church"
+}
+          </pre>
+        </div>
+        
+        <div class="endpoint">
+          <p><span class="method">GET</span> <span class="url">/api/auth/me</span></p>
+          <p>Returns the currently authenticated user's data.</p>
+        </div>
+        
+        <div class="endpoint">
+          <p><span class="method">GET</span> <span class="url">/api/auth/logout</span></p>
+          <p>Logs out the current user by clearing the token cookie.</p>
+        </div>
+        
+        <h2>Event Types</h2>
+        
+        <div class="endpoint">
+          <p><span class="method">GET</span> <span class="url">/api/event-types</span></p>
+          <p>Returns all event types for the current church.</p>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
 // Register
@@ -237,12 +323,8 @@ app.get('/api/auth/me', protect, (req: any, res) => {
 });
 
 // Start server
-const startServer = async () => {
-  await connectDB();
-  
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-};
-
-startServer(); 
+app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`Minimal server running on port ${PORT} and bound to all interfaces`);
+  console.log(`Test HTML available at: http://localhost:${PORT}/test-html`);
+  console.log(`API Documentation available at: http://localhost:${PORT}/api-docs`);
+}); 

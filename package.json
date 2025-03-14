@@ -18,6 +18,11 @@
   },
   "devDependencies": {
     "@types/express-validator": "^2.20.33",
+    "@types/swagger-ui-express": "^4.1.8",
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   }
 }

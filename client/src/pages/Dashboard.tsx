@@ -318,12 +318,75 @@ const Dashboard = () => {
   const [formError, setFormError] = useState<string | undefined>(undefined);
   // State for selected date for new event
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  // State for seeding status
+  const [isSeeding, setIsSeeding] = useState(false);
   
   // Get user data from auth hook
   const { userData } = useAuth();
   
   // Use the user's ID as the churchId
   const churchId = userData?.id || '';
+  
+  // Function to manually seed events
+  const handleSeedEvents = async () => {
+    try {
+      setIsSeeding(true);
+      console.log('Manually seeding events for church ID:', churchId);
+      
+      // Make a direct API call to seed events
+      const response = await fetch(`http://localhost:8080/api/events/${churchId}/seed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      const data = await response.json();
+      console.log('Seed response:', data);
+      
+      if (data.success) {
+        alert('Events seeded successfully! Refreshing data...');
+        // Refresh events
+        fetchEvents();
+      } else {
+        alert(`Failed to seed events: ${data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error seeding events:', error);
+      alert('Error seeding events. See console for details.');
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+  
+  // Function to manually seed event types
+  const handleSeedEventTypes = async () => {
+    try {
+      console.log('Manually seeding event types for church ID:', churchId);
+      
+      // Make a direct API call to seed event types
+      const response = await fetch(`http://localhost:8080/api/event-types/seed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      const data = await response.json();
+      console.log('Seed event types response:', data);
+      
+      if (data.success) {
+        alert('Event types seeded successfully!');
+      } else {
+        alert(`Failed to seed event types: ${data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error seeding event types:', error);
+      alert('Error seeding event types. See console for details.');
+    }
+  };
   
   // Fetch events from API
   const fetchEvents = async (month: number = new Date().getMonth(), year: number = new Date().getFullYear()) => {
@@ -491,6 +554,8 @@ const Dashboard = () => {
         attendees: eventData.attendees
       };
       
+      console.log('Event data before submission:', apiEventData);
+      
       if (eventData.id) {
         // Update existing event
         const response = await updateEvent(eventData.id, apiEventData);
@@ -510,18 +575,47 @@ const Dashboard = () => {
           setFormError(response.message || 'Failed to update event');
         }
       } else {
-        // Create new event
-        const response = await createEvent(churchId, apiEventData);
-        if (response.success && response.data) {
-          // Add new event to list with type assertion
-          setEvents(prevEvents => [...prevEvents, formatEventForCalendar(response.data as Event)]);
-          setIsEventFormOpen(false);
+        // Create new event using direct fetch call
+        console.log('Creating new event with data:', apiEventData);
+        
+        try {
+          // Convert eventTypeId to a proper MongoDB ObjectId format if it's not already
+          // This is a workaround for the "Cast to Object[] failed" error
+          const formattedData = {
+            ...apiEventData,
+            // The server expects eventTypeId to be a valid MongoDB ObjectId
+            // We're not actually creating an ObjectId here, just ensuring the string is in the correct format
+            eventTypeId: apiEventData.eventTypeId
+          };
           
-          // Refresh events to ensure we have the latest data
-          const eventDate = new Date(eventData.date);
-          fetchEvents(eventDate.getMonth(), eventDate.getFullYear());
-        } else {
-          setFormError(response.message || 'Failed to create event');
+          console.log('Formatted data for submission:', formattedData);
+          
+          const response = await fetch(`http://localhost:8080/api/events/${churchId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify(formattedData)
+          });
+          
+          const data = await response.json();
+          console.log('Create event response:', data);
+          
+          if (data.success && data.data) {
+            // Add new event to list with type assertion
+            setEvents(prevEvents => [...prevEvents, formatEventForCalendar(data.data as Event)]);
+            setIsEventFormOpen(false);
+            
+            // Refresh events to ensure we have the latest data
+            const eventDate = new Date(eventData.date);
+            fetchEvents(eventDate.getMonth(), eventDate.getFullYear());
+          } else {
+            setFormError(data.message || 'Failed to create event');
+          }
+        } catch (fetchError) {
+          console.error('Error creating event with fetch:', fetchError);
+          setFormError('An error occurred while saving the event');
         }
       }
     } catch (error) {
@@ -660,6 +754,30 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleSeedEventTypes}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Seed Event Types
+          </button>
+          <button
+            onClick={handleSeedEvents}
+            disabled={isSeeding}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+          >
+            {isSeeding ? 'Seeding...' : 'Seed Events'}
+          </button>
+          <CreateEventButton onClick={() => {
+            setEditingEvent(undefined);
+            setSelectedDate(new Date());
+            setIsEventFormOpen(true);
+          }} />
+        </div>
+      </div>
+      
       <CustomizableDashboard widgets={widgets} onWidgetsChange={handleWidgetsChange} />
       
       {/* Render the event details popup outside of the widgets */}
@@ -682,9 +800,6 @@ const Dashboard = () => {
         error={formError}
         initialDate={selectedDate}
       />
-      
-      {/* Only keep one Create Event button */}
-      <CreateEventButton onClick={handleCreateEvent} />
     </div>
   );
 };

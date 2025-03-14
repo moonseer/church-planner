@@ -1,5 +1,110 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ServiceItem:
+ *       type: object
+ *       required:
+ *         - id
+ *         - type
+ *         - title
+ *         - duration
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The unique identifier for the service item
+ *         type:
+ *           type: string
+ *           enum: [song, scripture, prayer, sermon, announcement, offering, custom]
+ *           description: The type of service item
+ *         title:
+ *           type: string
+ *           description: The title of the service item
+ *         details:
+ *           type: string
+ *           description: Additional details about the service item
+ *         duration:
+ *           type: number
+ *           description: The duration of the service item in minutes
+ *         assignedTo:
+ *           type: string
+ *           description: The person assigned to this service item
+ *         notes:
+ *           type: string
+ *           description: Additional notes for this service item
+ *       example:
+ *         id: item-1
+ *         type: song
+ *         title: Amazing Grace
+ *         details: Key of G, 3 verses
+ *         duration: 5
+ *         assignedTo: Worship Leader
+ *         notes: Start with piano only
+ *
+ *     Service:
+ *       type: object
+ *       required:
+ *         - title
+ *         - date
+ *         - time
+ *         - items
+ *         - churchId
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The auto-generated id of the service
+ *         title:
+ *           type: string
+ *           description: The title of the service
+ *         date:
+ *           type: string
+ *           format: date
+ *           description: The date of the service
+ *         time:
+ *           type: string
+ *           description: The time of the service
+ *         items:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ServiceItem'
+ *           description: The items included in the service
+ *         churchId:
+ *           type: string
+ *           description: The ID of the church this service belongs to
+ *         createdBy:
+ *           type: string
+ *           description: The ID of the user who created this service
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date the service was created
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date the service was last updated
+ *       example:
+ *         id: 60d0fe4f5311236168a109ce
+ *         title: Sunday Morning Worship
+ *         date: 2023-01-15
+ *         time: 10:00 AM
+ *         items:
+ *           - id: item-1
+ *             type: song
+ *             title: Amazing Grace
+ *             duration: 5
+ *             assignedTo: Worship Leader
+ *           - id: item-2
+ *             type: prayer
+ *             title: Opening Prayer
+ *             duration: 3
+ *             assignedTo: Pastor John
+ *         churchId: 60d0fe4f5311236168a109cd
+ *         createdAt: 2023-01-01T12:00:00.000Z
+ *         updatedAt: 2023-01-01T12:00:00.000Z
+ */
+
 // Service item type options
 export type ServiceItemType = 'song' | 'scripture' | 'prayer' | 'sermon' | 'announcement' | 'offering' | 'custom';
 

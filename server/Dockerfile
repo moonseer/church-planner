@@ -11,6 +11,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
+# Install Swagger packages for API documentation
+RUN npm install --save swagger-ui-express swagger-jsdoc
+
 # Install ts-node globally for running TypeScript scripts
 RUN npm install -g ts-node nodemon
 

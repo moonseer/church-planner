@@ -1,6 +1,66 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 /**
+ * @swagger
+ * components:
+ *   schemas:
+ *     EventType:
+ *       type: object
+ *       required:
+ *         - name
+ *         - code
+ *         - color
+ *         - churchId
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The auto-generated id of the event type
+ *         name:
+ *           type: string
+ *           description: The name of the event type
+ *           maxLength: 50
+ *         code:
+ *           type: string
+ *           description: A unique code for the event type
+ *           maxLength: 20
+ *           pattern: ^[a-z0-9-]+$
+ *         color:
+ *           type: string
+ *           description: The color associated with this event type (hex code)
+ *           pattern: ^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$
+ *         icon:
+ *           type: string
+ *           description: An optional icon identifier for the event type
+ *         churchId:
+ *           type: string
+ *           description: The ID of the church this event type belongs to
+ *         isDefault:
+ *           type: boolean
+ *           description: Whether this is a default event type
+ *         createdBy:
+ *           type: string
+ *           description: The ID of the user who created this event type
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date the event type was created
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date the event type was last updated
+ *       example:
+ *         id: 60d0fe4f5311236168a109cc
+ *         name: Sunday Service
+ *         code: sunday-service
+ *         color: #3498db
+ *         icon: church
+ *         churchId: 60d0fe4f5311236168a109cd
+ *         isDefault: true
+ *         createdAt: 2023-01-01T12:00:00.000Z
+ *         updatedAt: 2023-01-01T12:00:00.000Z
+ */
+
+/**
  * Interface for EventType document
  */
 export interface IEventType extends Document {

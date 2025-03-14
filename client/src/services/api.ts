@@ -36,14 +36,24 @@ api.interceptors.request.use(
     } else {
       console.warn('No token found in localStorage');
     }
+    
+    // Log the full request details for debugging
     console.log('API Request:', {
       method: config.method,
       url: config.url,
       baseURL: config.baseURL,
       fullURL: `${config.baseURL}${config.url}`,
-      headers: config.headers,
-      data: config.data
+      headers: {
+        ...config.headers,
+        // Don't log the full token for security reasons
+        Authorization: config.headers.Authorization && typeof config.headers.Authorization === 'string'
+          ? `Bearer ${config.headers.Authorization.split(' ')[1].substring(0, 10)}...` 
+          : config.headers.Authorization
+      },
+      data: config.data,
+      withCredentials: config.withCredentials
     });
+    
     return config;
   },
   (error) => {

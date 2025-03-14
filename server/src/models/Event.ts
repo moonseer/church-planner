@@ -1,5 +1,86 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Event:
+ *       type: object
+ *       required:
+ *         - title
+ *         - date
+ *         - time
+ *         - eventTypeId
+ *         - status
+ *         - churchId
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The auto-generated id of the event
+ *         title:
+ *           type: string
+ *           description: The title of the event
+ *         date:
+ *           type: string
+ *           format: date
+ *           description: The date of the event
+ *         time:
+ *           type: string
+ *           description: The time of the event
+ *         eventTypeId:
+ *           type: string
+ *           description: The ID of the event type
+ *         type:
+ *           type: string
+ *           enum: [service, rehearsal, meeting, youth]
+ *           description: Legacy event type (for backward compatibility)
+ *         status:
+ *           type: string
+ *           enum: [draft, published, completed]
+ *           description: The status of the event
+ *         description:
+ *           type: string
+ *           description: A description of the event
+ *         location:
+ *           type: string
+ *           description: The location of the event
+ *         organizer:
+ *           type: string
+ *           description: The organizer of the event
+ *         attendees:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: List of attendees for the event
+ *         churchId:
+ *           type: string
+ *           description: The ID of the church the event belongs to
+ *         createdBy:
+ *           type: string
+ *           description: The ID of the user who created the event
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date the event was created
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: The date the event was last updated
+ *       example:
+ *         id: 60d0fe4f5311236168a109cb
+ *         title: Sunday Service
+ *         date: 2023-01-15
+ *         time: 10:00 AM
+ *         eventTypeId: 60d0fe4f5311236168a109cc
+ *         status: published
+ *         description: Regular Sunday worship service
+ *         location: Main Sanctuary
+ *         organizer: Pastor John
+ *         churchId: 60d0fe4f5311236168a109cd
+ *         createdAt: 2023-01-01T12:00:00.000Z
+ *         updatedAt: 2023-01-01T12:00:00.000Z
+ */
+
 // Legacy event type options (kept for backward compatibility during migration)
 export type LegacyEventType = 'service' | 'rehearsal' | 'meeting' | 'youth';
 

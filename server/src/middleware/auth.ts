@@ -18,12 +18,26 @@ interface JwtPayload {
   role: string;
 }
 
+// Ensure JWT_SECRET is set
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error('JWT_SECRET environment variable is not set!');
+    throw new Error('JWT_SECRET environment variable is not set. This is a critical security issue.');
+  }
+  return secret;
+};
+
 export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     let token: string | undefined;
 
-    // Check for token in Authorization header
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    // Check for token in cookies first (preferred method)
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } 
+    // Fallback to Authorization header for backward compatibility
+    else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
 
@@ -34,8 +48,9 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     }
 
     try {
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as JwtPayload;
+      // Get JWT secret and verify token
+      const jwtSecret = getJwtSecret();
+      const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
 
       // Find user by id
       const user = await User.findById(decoded.id);
@@ -48,7 +63,13 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       req.user = user;
       next();
     } catch (error) {
-      res.status(401).json({ success: false, message: 'Not authorized to access this route' });
+      if (error instanceof Error && error.name === 'JsonWebTokenError') {
+        res.status(401).json({ success: false, message: 'Invalid token' });
+      } else if (error instanceof Error && error.name === 'TokenExpiredError') {
+        res.status(401).json({ success: false, message: 'Token expired' });
+      } else {
+        res.status(401).json({ success: false, message: 'Not authorized to access this route' });
+      }
       return;
     }
   } catch (error) {

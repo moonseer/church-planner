@@ -54,7 +54,7 @@ export const getServices = async (
       return cachedServices;
     }
     
-    let url = `/api/services/${churchId}`;
+    let url = `/services/${churchId}`;
     
     // Add month and year query parameters if provided
     if (month !== undefined && year !== undefined) {
@@ -99,7 +99,7 @@ export const getService = async (
       return cachedService;
     }
     
-    const response = await api.get(`/api/services/${serviceId}`);
+    const response = await api.get(`/services/${serviceId}`);
     
     // Cache the response for 30 minutes
     setCacheItem(cacheKey, response.data, 30);
@@ -125,7 +125,7 @@ export const createService = async (
   serviceData: ApiServiceData
 ): Promise<ApiResponse<Service>> => {
   try {
-    const response = await api.post(`/api/services/${churchId}`, serviceData);
+    const response = await api.post(`/services/${churchId}`, serviceData);
     
     // Invalidate cache for the month/year of the new service
     if (response.data.success && response.data.data) {
@@ -163,7 +163,7 @@ export const updateService = async (
   serviceData: ApiServiceData
 ): Promise<ApiResponse<Service>> => {
   try {
-    const response = await api.put(`/api/services/${serviceId}`, serviceData);
+    const response = await api.put(`/services/${serviceId}`, serviceData);
     
     // Invalidate cache for the month/year of the updated service
     if (response.data.success && response.data.data) {
@@ -207,10 +207,10 @@ export const deleteService = async (
 ): Promise<ApiResponse<null>> => {
   try {
     // First, get the service to know which cache to invalidate
-    const serviceResponse = await api.get(`/api/services/${serviceId}`);
+    const serviceResponse = await api.get(`/services/${serviceId}`);
     const service = serviceResponse.data.data;
     
-    const response = await api.delete(`/api/services/${serviceId}`);
+    const response = await api.delete(`/services/${serviceId}`);
     
     // Invalidate cache for the month/year of the deleted service
     if (response.data.success && service) {
@@ -252,7 +252,7 @@ export const seedServices = async (
   churchId: string
 ): Promise<ApiResponse<Service[]>> => {
   try {
-    const response = await api.post(`/api/services/${churchId}/seed`);
+    const response = await api.post(`/services/${churchId}/seed`);
     
     // Clear all service caches for this church since we've seeded new data
     clearServiceCachesForChurch(churchId);
